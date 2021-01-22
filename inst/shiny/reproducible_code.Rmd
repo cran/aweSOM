@@ -1,0 +1,43 @@
+---
+title: "aweSOM report"
+output: html_document
+params:
+  code: NA
+  ok.data: NA
+---
+
+```{r}
+library(aweSOM)
+```
+
+Import the data
+```{r, echo=FALSE}
+ok.data <- params$ok.data
+```
+
+```{r, code=params$code$codetxt$dataread, eval=FALSE}
+```
+
+Prepare training data
+```{r, code=params$code$codetxt$traindat}
+```
+
+Train SOM
+```{r, code=params$code$codetxt$train}
+```
+
+```{r, code=params$code$codetxt$sc}
+```
+
+Quality measures
+```{r, echo=FALSE}
+map_trained <- ifelse(!is.null(ok.som), TRUE, FALSE)
+```
+
+```{r, code="somQuality(ok.som, dat)", eval=map_trained}
+```
+
+Visualize 
+```{r, code=params$code$codetxt$plot}
+```
+

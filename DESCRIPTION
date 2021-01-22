@@ -1,0 +1,34 @@
+Package: aweSOM
+Title: Interactive Self-Organizing Maps
+Version: 1.0
+Date: 2021-01-19
+Authors@R: c(person("Julien", "Boelaert", role= c("aut", "cre"), email="julien.boelaert@univ-lille.fr"), 
+             person("Etienne", "Ollion", role= "aut"), 
+             person("Jan", "Sodoge", role= "aut"), 
+             person("Mohamed", "Megdoud", role= "ctb"), 
+             person("Otmane", "Naji", role= "ctb"), 
+             person("Arnaud", "Lemba Kote", role= "ctb"), 
+             person("Theo", "Renoud", role= "ctb"), 
+             person("Samuel", "Hym", role= "ctb"))
+Description: Self-organizing maps (also known as SOM, see Kohonen (2001) <doi:10.1007/978-3-642-56927-2>) are a method for dimensionality reduction and clustering of continuous data. This package introduces interactive (html) graphics for easier analysis of SOM results. It also features an interactive interface, for push-button training and visualization of SOM, as well as tools to evaluate the quality of SOM.
+License: GPL (>= 2)
+Depends: R (>= 3.1.0)
+Imports: kohonen, shiny, htmlwidgets, rmarkdown, htmltools, rclipboard,
+        RColorBrewer, viridis, data.table, DT, kernlab, stats, cluster,
+        e1071, haven, foreign, readxl
+Suggests: knitr
+VignetteBuilder: knitr
+RoxygenNote: 7.1.1
+NeedsCompilation: no
+Packaged: 2021-01-19 15:42:54 UTC; bart
+Author: Julien Boelaert [aut, cre],
+  Etienne Ollion [aut],
+  Jan Sodoge [aut],
+  Mohamed Megdoud [ctb],
+  Otmane Naji [ctb],
+  Arnaud Lemba Kote [ctb],
+  Theo Renoud [ctb],
+  Samuel Hym [ctb]
+Maintainer: Julien Boelaert <julien.boelaert@univ-lille.fr>
+Repository: CRAN
+Date/Publication: 2021-01-22 08:10:10 UTC

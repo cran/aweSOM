@@ -1,0 +1,21 @@
+## imports
+import(shiny)
+importFrom("grDevices", "cm.colors", "grey", "heat.colors", "rainbow",
+           "terrain.colors", "topo.colors")
+importFrom("graphics", "abline", "boxplot", "filled.contour", "grid")
+importFrom("stats", "cutree", "dist", "hclust", "median", "prcomp",
+             "quantile", "rect.hclust", "var")
+
+## exports
+# standard functions
+export(aweSOM)
+export(somDist)
+export(somInit)
+export(somQuality)
+export(aweSOMdendrogram)
+export(aweSOMscreeplot)
+export(aweSOMsilhouette)
+export(aweSOMsmoothdist)
+export(aweSOMplot)
+
+S3method(print, somQual)
