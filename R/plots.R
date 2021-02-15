@@ -1,4 +1,4 @@
-
+## Functions to plot SOM
 
 getPalette <- function(pal, n, reverse= FALSE) {
   if(pal == "grey") {
@@ -165,7 +165,6 @@ aweSOMscreeplot <- function(som, nclass= 2,
 #' ### Scale training data
 #' dat <- scale(dat)
 #' ## Train SOM
-#' ### RNG Seed (for reproducibility)
 #' ### Initialization (PCA grid)
 #' init <- somInit(dat, 4, 4)
 #' ok.som <- kohonen::som(dat, grid = kohonen::somgrid(4, 4, 'rectangular'),
@@ -209,7 +208,6 @@ aweSOMsmoothdist <- function(som,
 #' ### Scale training data
 #' dat <- scale(dat)
 #' ## Train SOM
-#' ### RNG Seed (for reproducibility)
 #' ### Initialization (PCA grid)
 #' init <- somInit(dat, 4, 4)
 #' ok.som <- kohonen::som(dat, grid = kohonen::somgrid(4, 4, 'hexagonal'),
@@ -245,7 +243,7 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
                           normtype, valueFormat,
                           palsc, palplot, reversePal, 
                           plotOutliers, showSC, equalSize, 
-                          showAxes, transparency) {
+                          showAxes, transparency, showNames= TRUE) {
   
   ##########
   ## Common parameters for all plots
@@ -269,7 +267,8 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
               cellNames= cellNames, 
               cellPop= unname(clust.table), 
               showAxes= showAxes, 
-              transparency= transparency)
+              transparency= transparency, 
+              showNames= showNames)
   
   
   if (type %in% c("Pie", "CatBarplot")) {
@@ -294,102 +293,67 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
     ## Compute normalized values for mean/median/prototype to use in plots
     ##########
     
+    if (type %in% c("Boxplot", "Circular", "Line", "Barplot", "Color", "Radar")) {
+      if (valueFormat == "prototypes") {
+        varnames <- intersect(varnames, colnames(som$codes[[1]]))
+        nvar <- length(varnames)
+        if (is.null(varnames)) return(NULL)
+        prototypes <- as.matrix(as.data.frame(som$codes[[1]])[varnames])
+      }
+    }
+    
     if (type %in% c("Circular", "Line", "Barplot", "Color", "Radar")) {
-      if (all(varnames %in% colnames(som$codes[[1]]))) {
-        prototypes <- som$codes[[1]][, varnames]
-      } else
-        prototypes <- som$codes[[1]]
-      
-      ## realValues are the one displayed in the text info above the plot
+      ## realValues are displayed in the text info above the plot
       if (valueFormat == "mean") {
         realValues <- do.call(rbind, lapply(split(data, clustering), 
-                                            function(x) {
-                                              if (!nrow(x)) return(rep(NA, nvar))
-                                              unname(round(colMeans(x), 3))
-                                            }))
-      } else if (valueFormat == "median") {
+                                            colMeans, na.rm = TRUE))
+      } else if (valueFormat == "median") { 
         realValues <- do.call(rbind, lapply(split(data, clustering), 
-                                            function(x) {
-                                              if (!nrow(x)) return(rep(NA, nvar))
-                                              unname(round(apply(x, 2, median), 3))
-                                            }))
-      } else if (valueFormat == "prototypes") {
-        realValues <- unname(as.data.frame(prototypes))
-      }
-        
-      if (normtype == "range") { 
-        ## "Range" normalization : data/proto range to [0,1], then means
-        if (valueFormat == "prototypes") {
-          normDat <- as.data.frame(sapply(as.data.frame(prototypes), function(x) .05 + .9 * (x - min(x)) / (max(x) - min(x))))
-        } else {
-          normDat <- as.data.frame(sapply(data, function(x) .05 + .9 * (x - min(x)) / (max(x) - min(x))))
-        }
-        
-        if(valueFormat == "mean"){ 
-          normValues <- unname(lapply(split(normDat, clustering), 
-                                      function(x) {
-                                        if (!nrow(x)) return(rep(NA, nvar))
-                                        unname(colMeans(x))
-                                      }))
-        } else if(valueFormat == "median"){
-          normValues <- unname(lapply(split(normDat, clustering), 
-                                      function(x) {
-                                        if (!nrow(x)) return(rep(NA, nvar))
-                                        unname(apply(x, 2, median))
-                                      }))
-        } else if(valueFormat == "prototypes"){
-          normValues <- unname(as.list(as.data.frame(t(normDat))))
-        }
-        realValues <- unname(as.list(as.data.frame(t(realValues))))
-        
-      } else if (normtype == "contrast") {
-        ## "Contrast" normalization : means on data, then range(means) -> [0,1]
-        
-        normValues <- apply(realValues, 2, function(x) 
-          .05 + .9 * (x - min(x, na.rm= TRUE)) / (max(x, na.rm= TRUE) - min(x, na.rm= TRUE)))
-        normValues <- unname(as.list(as.data.frame(t(normValues))))
-        realValues <- unname(as.list(as.data.frame(t(realValues))))
-        
-      } else if(normtype == "same"){
-        ## "Same scale" normalization : global 0-1 scale, on obs/protos
-        
-        if (valueFormat %in% c("mean", "median")) {
-          normDat <- as.data.frame(sapply(data, function(x) .05 + .9 * (x - min(data)) / (max(data) - min(data))))
-          if(valueFormat == "mean"){
-            normValues <- unname(lapply(split(normDat, clustering), 
-                                        function(x) {
-                                          if (!nrow(x)) return(rep(NA, nvar))
-                                          unname(colMeans(x))
-                                        }))
-          } else if(valueFormat == "median"){
-            normValues <- unname(lapply(split(normDat, clustering), 
-                                        function(x) {
-                                          if (!nrow(x)) return(rep(NA, nvar))
-                                          unname(apply(x, 2, median))
-                                        }))
-          }
-        } else if(valueFormat == "prototypes"){
-          normDat <- as.data.frame(sapply(as.data.frame(prototypes), 
-                                          function(x) .05 + .9 * (x - min(prototypes)) / (max(prototypes) - min(prototypes))))
-          normValues <- unname(as.list(as.data.frame(t(normDat))))
-        }
-        realValues <- unname(as.list(as.data.frame(t(realValues))))
+                                            function(x) 
+                                              apply(x, 2, median, na.rm= TRUE)))
+      } else if (valueFormat == "prototypes") { 
+        realValues <- prototypes
+        data <- prototypes
       }
       
+      ## normValues are used for plotting (scaled to 0.05-0.95)
+      normValues <- realValues
+      if (normtype == "contrast") {
+        for (i in varnames) normValues[, i] <- (realValues[, i] - min(realValues[, i], na.rm = TRUE)) /
+            (max(realValues[, i], na.rm = TRUE) - min(realValues[, i], na.rm = TRUE))
+      } else if (normtype == "range") {
+        for (i in varnames) normValues[, i] <- (realValues[, i] - min(data[, i], na.rm = TRUE)) / 
+            (max(data[, i], na.rm = TRUE) - min(data[, i], na.rm = TRUE))
+      } else if (normtype == "same") {
+        for (i in varnames) normValues[, i] <- (realValues[, i] - min(data, na.rm = TRUE)) / 
+            (max(data, na.rm = TRUE) - min(data, na.rm = TRUE))
+      }
+      normValues <- .05 + .9 * normValues
+      
+      realValues <- round(realValues, 3)
       if (type == "Color") {
         ## 8 colors (equal-sized bins of values) of selected palette
-        normValues <- do.call(rbind, normValues)
         normValues <- apply(normValues, 2, function(x) 
           getPalette(palplot, 8, reversePal)[cut(x, seq(.049, .951, length.out= 9))])
         normValues[is.na(normValues)] <- "#FFFFFF"
       }
     } else if (type == "Boxplot") {
-      if (normtype == "same") {
-        normDat <- (data - min(data)) / (max(data) - min(data))
+      if (valueFormat == "prototypes") {
+        normDat <- as.data.frame(prototypes[clustering, ])
+        data <- as.data.frame(apply(data, 2, as.numeric))
       } else {
-        normDat <- as.data.frame(sapply(data, function(x) (x - min(x)) / (max(x) - min(x))))
+        data <- as.data.frame(apply(data, 2, as.numeric))
+        normDat <- data
       }
-      data <- as.data.frame(apply(data, 2, as.numeric))
+      
+      if (normtype == "same") {
+        normDat <- (normDat - min(normDat, na.rm = TRUE)) / 
+          (max(normDat, na.rm = TRUE) - min(normDat, na.rm = TRUE))
+      } else {
+        normDat <- as.data.frame(sapply(normDat, function(x) (x - min(x, na.rm = TRUE)) / 
+                                          (max(x, na.rm = TRUE) - min(x, na.rm = TRUE))))
+      }
+      
     }
   } else if (type == "UMatrix") {
     proto.gridspace.dist <- kohonen::unit.distances(som$grid)
@@ -419,8 +383,8 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
       res$labelColor <- getPalette(palplot, nvar, reversePal)
     }
     res$label <- varnames
-    res$normalizedValues <- normValues
-    res$realValues <- realValues
+    res$normalizedValues <- unname(normValues)
+    res$realValues <- unname(realValues)
     res$isCatBarplot <- FALSE
     res$showSC <- showSC
   } else if (type == "Boxplot") {
@@ -432,7 +396,7 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
     boxes.real <- lapply(split(data, clustering), boxplot, plot= FALSE)
     res$normalizedValues <- unname(lapply(boxes.norm, function(x) unname(as.list(as.data.frame(round(x$stats, 3))))))
     res$realValues <- unname(lapply(boxes.real, function(x) unname(as.list(as.data.frame(round(x$stats, 3))))))
-    
+
     if (plotOutliers) {
       res$normalizedExtremesValues <- unname(lapply(boxes.norm, function(x) unname(split(round(x$out, 3), factor(x$group, levels= 1:nvar)))))
       res$realExtremesValues <- unname(lapply(boxes.real, function(x) as.list(unname(split(round(x$out, 3), factor(x$group, levels= 1:nvar))))))
@@ -498,7 +462,7 @@ aweSOMwidget <- function(ok.som, ok.sc, ok.data, ok.trainrows,
   if (is.null(ok.som))
     return(NULL)
   
-  ok.clust <- ok.som$unit.classif
+  ok.clust <- factor(ok.som$unit.classif, levels= 1:nrow(ok.som$codes[[1]]))
   plot.data <- ok.data[ok.trainrows, ]
   if(is.null(plot.data)) return(NULL)
   
@@ -509,8 +473,7 @@ aweSOMwidget <- function(ok.som, ok.sc, ok.data, ok.trainrows,
   } else {
     plotNames.var <- as.character(plot.data[, plotNames])
   }
-  
-  cellNames <- unname(lapply(split(plotNames.var, factor(ok.clust, levels= 1:nrow(ok.som$codes[[1]]))), 
+  cellNames <- unname(lapply(split(plotNames.var, ok.clust),
                              function(x) paste(x, collapse= ", "))) # "&#13;&#10;" "<br />"
   
   
@@ -593,11 +556,7 @@ aweSOMwidget_html = function(id, style, class, ...){
 #'   when hovering over the cells of the SOM. Must have a length equal to the
 #'   number of data rows. If not provided, the row names of data will be used.
 #' @param scales character, controls the scaling of the variables on the plot.
-#'   The default "constrast" maximizes the displayed contrast by scaling the
-#'   displayed heights of each variable from minimum to maximum of the displayed
-#'   value. Alternatively, "range" uses the minimum and maximum of the
-#'   observations for each variable, and "same" displays all variables on the
-#'   same scale, using the global minimum and maximum of the data.
+#'   See Details.
 #' @param values character, the type of value to be displayed. The default
 #'   "mean" uses the observation means (from data) for each cell. Alternatively,
 #'   "median" uses the observation medians for each cell, and "prototypes" uses
@@ -622,9 +581,18 @@ aweSOMwidget_html = function(id, style, class, ...){
 #' @param pieEqualSize logical, whether "Pie" should display pies of equal size.
 #'   The default FALSE displays pies with areas proportional to the number of
 #'   observations in the cells.
+#' @param showNames logical, whether to display the observations names in a box
+#'   below the plot.
 #' @param elementId character, user-defined elementId of the widget. Can be
 #'   useful for user extensions when embedding the result in an html page.
 #'
+#' @details Variables scales: All values that are used for the plots (means, medians, prototypes) are scaled to 0-1 for display (minimum height to maximum height). The \code{scales} parameter controls how this scaling is done.
+#' \itemize{
+#' \item{"contrast"}: for each variable, the minimum height is the minimum observed mean/median/prototype on the map, the maximum height is the maximum on the map. This ensures maximal contrast on the plot.
+#' \item{"range"}: observation range; for each variable, the minimum height corresponds to the minimum of that variable over the whole dataset, the maximum height to the maximum of the variable on the whole dataset.
+#' \item{"same"}: same scales; all heights are displayed on the same scale, using the global minimum and maximum of the dataset.
+#' }
+#' 
 #' @return Returns an object of class \code{htmlwidget}.
 #'
 #' @examples
@@ -681,6 +649,7 @@ aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot",
                        boxOutliers= TRUE, 
                        showSC = TRUE,
                        pieEqualSize= FALSE,
+                       showNames= TRUE,
                        elementId= NULL) {
 
   type <- match.arg(type)
@@ -757,7 +726,7 @@ aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot",
                               variables, obsNames,
                               scales, values, palsc, palvar, palrev, 
                               boxOutliers, showSC, pieEqualSize, 
-                              showAxes, transparency)
+                              showAxes, transparency, showNames)
 
   ## Compute widget dimensions
   if (som$grid$topo == "rectangular") {
@@ -794,3 +763,99 @@ aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot",
 }
 
 
+#' Reorder variables for SOM plot
+#'
+#' Reorders a set of variables for prettier display on SOM plots. Variables that
+#' have similar variations along the cell plots while be ordered close together.
+#' Reordering is computed from the first component of a kernel PCA performed on
+#' the matrix of displayed values (with the variables as rows, and the cells as
+#' columns).
+#'
+#' @param som \code{kohonen} object, a SOM created by the \code{kohonen::som}
+#'   function.
+#' @param data \code{data.frame} containing the variables to plot. This is
+#'   typically not the training data, but rather the unscaled original data, as
+#'   it is easier to read the results in the original units, and this allows to
+#'   plot extra variables not used in training. If not provided, the training
+#'   data is used.
+#' @param variables character vector containing the names of the variables to
+#'   plot. If not provided, all columns of data will be selected. All variables
+#'   must be numeric.
+#' @param scales character, controls the scaling of the variables on the plot.
+#'   The default "constrast" maximizes the displayed contrast by scaling the
+#'   displayed heights of each variable from minimum to maximum of the displayed
+#'   value. Alternatively, "range" uses the minimum and maximum of the
+#'   observations for each variable, and "same" displays all variables on the
+#'   same scale, using the global minimum and maximum of the data.
+#' @param values character, the type of value to be displayed. The default
+#'   "mean" uses the observation means (from data) for each cell. Alternatively,
+#'   "median" uses the observation medians for each cell, and "prototypes" uses
+#'   the SOM's prototypes values.
+#'
+#' @return Returns a character vector containing the reordered variables names.
+#' 
+#' @examples
+#' ## Build training data
+#' dat <- iris[, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width")]
+#' ### Scale training data
+#' dat <- scale(dat)
+#' ## Train SOM
+#' ### Initialization (PCA grid)
+#' init <- somInit(dat, 4, 4)
+#' ok.som <- kohonen::som(dat, grid = kohonen::somgrid(4, 4, 'hexagonal'),
+#'                        rlen = 100, alpha = c(0.05, 0.01),
+#'                        radius = c(2.65,-2.65), init = init,
+#'                        dist.fcts = 'sumofsquares')
+#' ## Reorder variables
+#' ordered.vars <- aweSOMreorder(ok.som)
+#' ## Plot with reordered variables
+#' aweSOMplot(som = ok.som, type = 'Circular', data = iris,
+#'            variables= ordered.vars)
+aweSOMreorder <- function(som, data = NULL, variables = NULL, 
+                          scales = c("contrast", "range", "same"), 
+                          values = c("mean", "median", "prototypes")) {
+  if (!("kohonen" %in% class(som)))
+    stop("`som` argument must be a `kohonen` object, created by `kohonen::som`")
+  
+  if (is.null(data)) ## If no data, fall back on training data
+    data <- som$data[[1]]
+  if (nrow(data) != nrow(som$data[[1]])) 
+    stop("`data` must have the same number of rows as the training data.")
+  data <- as.data.frame(data)
+  
+  if (is.null(variables)) ## If no variables, fall back on all columns
+    variables <- colnames(data)
+  if (! all(variables %in% colnames(data))) 
+    stop(paste0("Variables < ", 
+                paste(variables[! (variables %in% colnames(data))], collapse= " , "),
+                " > not found in data"))
+  if (any(sapply(variables, function(x) !is.numeric(data[, x]))))
+    stop("All variables must be numeric.")
+
+  if (length(variables) < 2) return(variables)
+  scales <- match.arg(scales)
+  values <- match.arg(values)
+
+  if (values == "mean") {
+    cellValues <- do.call(rbind, lapply(split(data[, variables], som$unit.classif), 
+                                        colMeans, na.rm = TRUE))
+  } else if (values == "median") { 
+    cellValues <- do.call(rbind, lapply(split(data[, variables], som$unit.classif), 
+                                        function(x) apply(x, 2, median, na.rm = TRUE)))
+  } else if (values == "prototypes") { 
+    if (! all(variables %in% colnames(som$codes[[1]]))) return(NULL)
+    cellValues <- som$codes[[1]][, variables]
+  }
+  cellValues <- apply(cellValues, 2, function(x) {x[is.na(x)] <- mean(x, na.rm= TRUE); x})
+  
+  if (scales == "range") {
+    for (i in variables) cellValues[, i] <- (cellValues[, i] - min(data[, i], na.rm = TRUE)) / 
+        (max(data[, i], na.rm = TRUE) - min(data[, i], na.rm = TRUE))
+  } else if (scales == "contrast") {
+    for (i in variables) cellValues[, i] <- (cellValues[, i] - min(cellValues[, i])) / 
+        (max(cellValues[, i]) - min(cellValues[, i]))
+  }
+  
+  arrange <- kernlab::kpca(t(as.matrix(cellValues)))@rotated[, 1]
+  variables[order(arrange)]
+}

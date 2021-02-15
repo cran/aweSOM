@@ -25,6 +25,7 @@ aweSOMplot(
   boxOutliers = TRUE,
   showSC = TRUE,
   pieEqualSize = FALSE,
+  showNames = TRUE,
   elementId = NULL
 )
 }
@@ -58,11 +59,7 @@ when hovering over the cells of the SOM. Must have a length equal to the
 number of data rows. If not provided, the row names of data will be used.}
 
 \item{scales}{character, controls the scaling of the variables on the plot.
-The default "constrast" maximizes the displayed contrast by scaling the
-displayed heights of each variable from minimum to maximum of the displayed
-value. Alternatively, "range" uses the minimum and maximum of the
-observations for each variable, and "same" displays all variables on the
-same scale, using the global minimum and maximum of the data.}
+See Details.}
 
 \item{values}{character, the type of value to be displayed. The default
 "mean" uses the observation means (from data) for each cell. Alternatively,
@@ -98,6 +95,9 @@ default TRUE.}
 The default FALSE displays pies with areas proportional to the number of
 observations in the cells.}
 
+\item{showNames}{logical, whether to display the observations names in a box
+below the plot.}
+
 \item{elementId}{character, user-defined elementId of the widget. Can be
 useful for user extensions when embedding the result in an html page.}
 }
@@ -110,6 +110,14 @@ page. The plot can represent general map informations, or selected
 categorical or numeric variables (not necessarily the ones used during
 training). Hover over the map to focus on the selected cell or variable, and
 display further information.
+}
+\details{
+Variables scales: All values that are used for the plots (means, medians, prototypes) are scaled to 0-1 for display (minimum height to maximum height). The \code{scales} parameter controls how this scaling is done.
+\itemize{
+\item{"contrast"}: for each variable, the minimum height is the minimum observed mean/median/prototype on the map, the maximum height is the maximum on the map. This ensures maximal contrast on the plot.
+\item{"range"}: observation range; for each variable, the minimum height corresponds to the minimum of that variable over the whole dataset, the maximum height to the maximum of the variable on the whole dataset.
+\item{"same"}: same scales; all heights are displayed on the same scale, using the global minimum and maximum of the dataset.
+}
 }
 \examples{
 ## Build training data

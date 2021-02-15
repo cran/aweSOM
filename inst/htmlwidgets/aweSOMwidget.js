@@ -54,6 +54,7 @@ HTMLWidgets.widget({
     var showSC = data.showSC;
     var showAxes = data.showAxes;
     var transparency = data.transparency;
+    var showNames = data.showNames;
     
     // IDs of plot, legend, infos
     var plotId = el.attributes.id.value;
@@ -72,7 +73,7 @@ HTMLWidgets.widget({
     document.getElementById(infoId).style.textAlign = "center";
     document.getElementById(messageId).style.textAlign = "center";
     document.getElementById(namesId).style.textAlign = "center";
-    
+    if (!showNames) document.getElementById(namesId).style.display = "none";
     document.getElementById(plotId).innerHTML = ""; //remove the old graph
     document.getElementById(legendId).innerHTML = ""; //remove old legend
     document.getElementById(infoId).innerHTML = "Hover over the plot for information.";
@@ -224,6 +225,7 @@ HTMLWidgets.widget({
   				.attr("class", "axis")
   				.attr("d", function(d, i) {
             if (forceArray(forceArray(normalizedValues[i])[0])[0] == null) return null;
+            if (isCatBarplot) if (cellPop[i] == 0) return null;
             var ch= ""
             for (var iy= 0; iy < ylims.length; iy++)
               ch = ch + "M " + (cellPositions[i].x + xlims[0] * refSize) + " , " + (cellPositions[i].y + ylims[iy] * refSize)+

@@ -1,0 +1,18 @@
+aweSOM 1.1
+
+Fixed bugs:
+  In reproducible script, when data was unscaled it was not in matrix form.
+  In the plot panel, the scales option was not available for CatBarplot.
+  Variables weights are no longer standardized to sum to 1.
+  Boxplot on prototype values is now drawn for the prototype values.
+
+Improvements:
+  Added support for categorical variables, and NA values.
+  In the plot panel, variables selection changes only when necessary.
+  New functions: cdt for complete disjunctive tables, and aweSOMreorder to reorder variables for pretty display.
+  Option to hide observations names in the plots.
+
+Misc:
+  Added hex-sticker logo.
+  Improved appearance of the shiny UI.
+  More detailed help messages in UI.

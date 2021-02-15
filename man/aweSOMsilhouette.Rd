@@ -26,7 +26,6 @@ dat <- iris[, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width")]
 ### Scale training data
 dat <- scale(dat)
 ## Train SOM
-### RNG Seed (for reproducibility)
 ### Initialization (PCA grid)
 init <- somInit(dat, 4, 4)
 ok.som <- kohonen::som(dat, grid = kohonen::somgrid(4, 4, 'hexagonal'),

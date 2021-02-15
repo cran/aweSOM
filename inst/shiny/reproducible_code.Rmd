@@ -7,12 +7,12 @@ params:
 ---
 
 ```{r}
-library(aweSOM)
+library(aweSOM) # version 1.1
 ```
 
 Import the data
 ```{r, echo=FALSE}
-ok.data <- params$ok.data
+import.data <- params$ok.data
 ```
 
 ```{r, code=params$code$codetxt$dataread, eval=FALSE}
@@ -31,10 +31,10 @@ Train SOM
 
 Quality measures
 ```{r, echo=FALSE}
-map_trained <- ifelse(!is.null(ok.som), TRUE, FALSE)
+map_trained <- ifelse(!is.null(the.som), TRUE, FALSE)
 ```
 
-```{r, code="somQuality(ok.som, dat)", eval=map_trained}
+```{r, code="somQuality(the.som, train.data)", eval=map_trained}
 ```
 
 Visualize 
