@@ -2,8 +2,8 @@
 import(shiny)
 importFrom("grDevices", "cm.colors", "grey", "heat.colors", "rainbow",
            "terrain.colors", "topo.colors")
-importFrom("graphics", "abline", "boxplot", "filled.contour", "grid")
-importFrom("stats", "as.formula", "cutree", "dist", "hclust", "median", "model.matrix", "princomp", "quantile", "rect.hclust", "var")
+importFrom("graphics", "abline", "boxplot", "filled.contour", "grid", "plot")
+importFrom("stats", "as.formula", "cutree", "dist", "hclust", "median", "model.matrix", "prcomp", "quantile", "rect.hclust", "var")
 
 ## exports
 # standard functions

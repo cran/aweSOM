@@ -6,8 +6,8 @@
 \usage{
 aweSOMplot(
   som,
-  type = c("Hitmap", "UMatrix", "Circular", "Barplot", "Boxplot", "Radar", "Line",
-    "Color", "Pie", "CatBarplot"),
+  type = c("Hitmap", "Cloud", "UMatrix", "Circular", "Barplot", "Boxplot", "Radar",
+    "Line", "Color", "Pie", "CatBarplot"),
   data = NULL,
   variables = NULL,
   superclass = NULL,
@@ -26,6 +26,10 @@ aweSOMplot(
   showSC = TRUE,
   pieEqualSize = FALSE,
   showNames = TRUE,
+  legendPos = c("beside", "below", "none"),
+  legendFontsize = 14,
+  cloudType = c("cellPCA", "kPCA", "PCA", "proximity", "random"),
+  cloudSeed = NA,
   elementId = NULL
 )
 }
@@ -33,11 +37,12 @@ aweSOMplot(
 \item{som}{\code{kohonen} object, a SOM created by the \code{kohonen::som} function.}
 
 \item{type}{character, the plot type. The default "Hitmap" is a population
-map. "UMatrix" plots the average distance of each cell to its neighbors, on
-a color scale. "Circular" (barplot), "Barplot", "Boxplot", "Radar" and
-"Line" are for numeric variables. "Color" (heat map) is for a single
-numeric variable. "Pie" (pie chart) and "CatBarplot" are for a single
-categorical (factor) variable.}
+map. "Cloud" plots the observations as a scatterplot within each cell (see
+Details). "UMatrix" plots the average distance of each cell to its
+neighbors, on a color scale. "Circular" (barplot), "Barplot", "Boxplot",
+"Radar" and "Line" are for numeric variables. "Color" (heat map) is for a
+single numeric variable. "Pie" (pie chart) and "CatBarplot" are for a
+single categorical (factor) variable.}
 
 \item{data}{data.frame containing the variables to plot. This is typically
 not the training data, but rather the unscaled original data, as it is
@@ -46,11 +51,7 @@ extra variables not used in training. If not provided, the training data is
 used.}
 
 \item{variables}{character vector containing the names of the variable(s) to
-plot. The selected variables must be numeric for types "Circular",
-"Barplot", "Boxplot", "Radar", "Color" and "Line", or factor for types
-"Pie" and "CatBarplot". If not provided, all columns of data will be
-selected. If a numeric variable is provided to a "Pie" or "CatBarplot", it
-will be split into a maximum of 30 classes.}
+plot. See Details.}
 
 \item{superclass}{integer vector, the superclass of each cell of the SOM.}
 
@@ -98,6 +99,18 @@ observations in the cells.}
 \item{showNames}{logical, whether to display the observations names in a box
 below the plot.}
 
+\item{legendPos}{character, whether and where to display the legend (if
+applicable). Possible values are "beside", "below" or "none".}
+
+\item{legendFontsize}{numeric, font size to use for the legend, and for the
+tooltip information of the "Cloud" plot. Default is 14.}
+
+\item{cloudType}{character, for "Cloud" type, controls how the point
+coordinates are computed, see Details.}
+
+\item{cloudSeed}{numeric, for "random Cloud" type, seed for the pseudo-random
+placement of the points. If NA (the default), no seed will be set.}
+
 \item{elementId}{character, user-defined elementId of the widget. Can be
 useful for user extensions when embedding the result in an html page.}
 }
@@ -112,11 +125,55 @@ training). Hover over the map to focus on the selected cell or variable, and
 display further information.
 }
 \details{
-Variables scales: All values that are used for the plots (means, medians, prototypes) are scaled to 0-1 for display (minimum height to maximum height). The \code{scales} parameter controls how this scaling is done.
+The selected \code{variables} must be numeric for types "Circular",
+  "Barplot", "Boxplot", "Radar", "Color" and "Line", or factor for types
+  "Pie" and "CatBarplot". If not provided, all columns of data will be
+  selected. If a numeric variable is provided to a "Cloud", "Pie" or
+  "CatBarplot", it will be split into a maximum of 8 classes. For "Cloud"
+  plots, the first element of \code{variables} is used to color the points
+  (and can be "None" for no coloring), the following elements (if any) are
+  used in the information box of each point.
+
+Variables scales: All values that are used for the plots (means,
+  medians, prototypes) are scaled to 0-1 for display (minimum height to
+  maximum height). The \code{scales} parameter controls how this scaling is
+  done.
 \itemize{
-\item{"contrast"}: for each variable, the minimum height is the minimum observed mean/median/prototype on the map, the maximum height is the maximum on the map. This ensures maximal contrast on the plot.
-\item{"range"}: observation range; for each variable, the minimum height corresponds to the minimum of that variable over the whole dataset, the maximum height to the maximum of the variable on the whole dataset.
-\item{"same"}: same scales; all heights are displayed on the same scale, using the global minimum and maximum of the dataset.
+\item{"contrast"}: for each variable, the minimum height is the minimum
+observed mean/median/prototype on the map, the maximum height is the maximum
+on the map. This ensures maximal contrast on the plot.
+\item{"range"}: observation range; for each variable, the minimum height
+corresponds to the minimum of that variable over the whole dataset, the
+maximum height to the maximum of the variable on the whole dataset.
+\item{"same"}: same scales; all heights are displayed on the same scale,
+using the global minimum and maximum of the dataset.
+}
+
+Cloud plot: three types of cloud plots are available, controlled by the
+\code{cloudType} argument:
+\itemize{
+\item{"cellPCA"}: (default) the point coordinates are computed cell by cell,
+by computing a PCA on the training data of that cell only. Points close to
+the center of the cell are close to the mean of its observations. Points far
+apart within a cell are likely to have different characteristics.
+\item{"kPCA"}: the point coordinates are computed globally, by a kernel PCA
+performed on all the differences between the training data and their winning
+prototypes. Points close to the center of their cell are close to their
+prototype, and points with similar placements in the clouds thus have a
+similar difference to their prototype. Not recommended for large datasets
+(eg. > 1000 observations), as it tends to take too much memory.
+\item{"PCA"}: the point coordinates are computed globally, by a PCA
+performed on all the differences between the training data and their winning
+prototypes. Points close to the center of their cell are close to their
+prototype, and points with similar placements in the clouds thus have a
+similar difference to their prototype.
+\item{"proximity"}: the point coordinates are computed one by one, based on
+the distances of the observation's training data to its cell's prototype and
+to its second best matching prototypes among its cell's neighbors. Points
+close to their cell's center are close to their closest prototype, while
+points close to another cell are close to that cell's prototype.
+\item{"random"}: the point coordinates are random samples from a uniform
+distribution.
 }
 }
 \examples{
@@ -135,11 +192,15 @@ ok.som <- kohonen::som(dat, grid = kohonen::somgrid(4, 4, 'hexagonal'),
 superclust <- cluster::pam(ok.som$codes[[1]], 2)
 superclasses <- superclust$clustering
 
+## Observations cloud ('Cloud')
+variables <- c("Sepal.Length", "Sepal.Width",  "Petal.Length", "Petal.Width")
+aweSOMplot(som = ok.som, type = 'Cloud', data = iris, 
+           variables = c("Species", variables), superclass = superclasses)
+
 ## Population map ('Hitmap')
 aweSOMplot(som = ok.som, type = 'Hitmap', superclass = superclasses)
 
 ## Plots for numerical variables
-variables <- c("Sepal.Length", "Sepal.Width",  "Petal.Length", "Petal.Width")
 ## Circular barplot
 aweSOMplot(som = ok.som, type = 'Circular', data = iris,
            variables= variables, superclass = superclasses)

@@ -33,35 +33,42 @@ HTMLWidgets.widget({
     //console.log(data);
     
     // Import common data
-    var plotType= data.plotType;
-    var nbRows= data.gridInfo.nbLines;
-    var nbColumns= data.gridInfo.nbColumns;
-    var topology= data.gridInfo.topology;
-    var superclass = data.superclass;
-    var superclassColor = data.superclassColor;
-  	var cellNames = data.cellNames;
-  	var cellPop = data.cellPop;
-  	
-  	var nVars = data.nVars;
-  	var label = forceArray(data.label);
-    var labelColor = forceArray(data.labelColor);
-    var normalizedValues = data.normalizedValues;
-    var realValues = data.realValues;
-    var normalizedSize = data.normalizedSize;
-  	var normalizedExtremesValues= data.normalizedExtremesValues;
-  	var realExtremesValues= data.realExtremesValues;
-    var isCatBarplot = data.isCatBarplot;
-    var showSC = data.showSC;
-    var showAxes = data.showAxes;
-    var transparency = data.transparency;
-    var showNames = data.showNames;
+    var plotType= data.plotType, 
+  	  nbRows= data.gridInfo.nbLines, 
+  	  nbColumns= data.gridInfo.nbColumns, 
+  	  topology= data.gridInfo.topology, 
+  	  superclass = data.superclass, 
+  	  superclassColor = data.superclassColor, 
+  	  cellNames = data.cellNames, 
+  	  cellPop = data.cellPop,
+  	  nVars = data.nVars, 
+  	  label = forceArray(data.label), 
+  	  labelColor = forceArray(data.labelColor), 
+  	  normalizedValues = data.normalizedValues, 
+  	  realValues = data.realValues, 
+  	  normalizedSize = data.normalizedSize, 
+  	  normalizedExtremesValues= data.normalizedExtremesValues, 
+  	  realExtremesValues= data.realExtremesValues, 
+  	  isCatBarplot = data.isCatBarplot, 
+  	  showSC = data.showSC, 
+  	  showAxes = data.showAxes, 
+  	  transparency = data.transparency, 
+  	  showNames = data.showNames, 
+  	  legendPos = data.legendPos, 
+  	  legendFontsize = data.legendFontsize, 
+  	  legendReverse = data.legendReverse,
+  	  clustering = data.clustering, 
+  	  cloudColor = data.cloudColor, 
+  	  colorVarName = data.colorVarName, 
+  	  obsDetail = data.obsDetail, 
+  	  fullData = data.fullData, 
+  	  fullDataNames = data.fullDataNames;
     
     // IDs of plot, legend, infos
     var plotId = el.attributes.id.value;
     var infoId= plotId + "-info", 
       messageId= plotId + "-message", 
-      namesId= plotId + "-names", 
-      legendId= plotId + "-legend";
+      namesId= plotId + "-names";
 
   	// Set widget size and cell size
   	width= data.sizeInfo;
@@ -72,10 +79,10 @@ HTMLWidgets.widget({
 
     document.getElementById(infoId).style.textAlign = "center";
     document.getElementById(messageId).style.textAlign = "center";
+    document.getElementById(messageId).style.whiteSpace = "nowrap";
     document.getElementById(namesId).style.textAlign = "center";
     if (!showNames) document.getElementById(namesId).style.display = "none";
     document.getElementById(plotId).innerHTML = ""; //remove the old graph
-    document.getElementById(legendId).innerHTML = ""; //remove old legend
     document.getElementById(infoId).innerHTML = "Hover over the plot for information.";
     document.getElementById(messageId).innerHTML = "-";
     document.getElementById(namesId).innerHTML = "-";
@@ -129,6 +136,8 @@ HTMLWidgets.widget({
           cellPositions[iCell].x = (theCol + 0.5) * cellSize;
           cellPositions[iCell].y = (nbRows - 0.5 - theRow) * cellSize;
           cellPositions[iCell].cell = iCell;
+          cellPositions[iCell].row = theRow;
+          cellPositions[iCell].col = theCol;
         }
       }
       
@@ -156,20 +165,22 @@ HTMLWidgets.widget({
       cellPositions = [];
       for (var i = nbRows; i > 0; i--) {
         for (var j = 0; j < nbColumns; j++) {
-          cellPositions.push({x: hexRadius * Math.sqrt(3) * 0.5 * (1 + 2 * j + ((i+1) % 2)),
+          cellPositions.push({x: hexRadius * Math.sqrt(3) * 0.5 * (1 + 2 * j + ((nbRows-i+1) % 2)),
                               y: hexRadius * ((i-1) * 1.5 + 1), 
                               cell: (nbRows - i)*nbColumns + j, 
                               row: i, col:j}); 
         }
       }
     }
-    
-    var thePlot = d3.select("#" + plotId).append("svg")
+
+    // Create the svg containing plot and legend
+    var theSvg = d3.select("#" + plotId).append("svg")
 		.attr("width", width)
 		.attr("height", height)
-		.attr("style","display:block; margin:auto; margin-top:0px;")
-		.append("g");
+		.attr("style","display:block; margin:auto; margin-top:0px;");
+		var thePlot = theSvg.append("g");
 
+    // Create map cells
     var cells = thePlot.selectAll(".cell")
 		.data(cellPositions)
 		.enter().append("path")
@@ -303,33 +314,185 @@ HTMLWidgets.widget({
     /////////////////////////
     // Create legend (if appropriate)
     /////////////////////////
+    if (legendPos != "none") if (plotType === "Circular" || plotType === "Barplot" || plotType === "Boxplot" || plotType === "Line" || plotType === "Pie" || plotType === "Color" || plotType === "Cloud") {
+      
+      var legendColors = legendReverse ? labelColor.slice().reverse():labelColor;
 
-    if(plotType.localeCompare("Hitmap")!=0 && plotType.localeCompare("Radar")!=0 && plotType.localeCompare("Line")!=0 && plotType.localeCompare("Color")!=0) {
-      var legend = d3.select("#" + legendId);
-		  legend.attr("height", height);
-      // create a list of keys
-      var keys = label;
-      var  colors  = labelColor;
-      legend.selectAll("mydots")
-        .data(keys)
-        .enter()
-        .append("circle")
-        .attr("cx", function(d,i){ return (Math.floor(i/10) * 200 + 10);})
-        .attr("cy", function(d,i){ return i % 10 * 20 + 10; }) // 100 is where the first dot appears. 25 is the distance between dots
-        .attr("r", 7)
-        .style("fill", function(d,i){return colors[i];});
-      legend.selectAll("mylabels")
-        .data(keys)
-        .enter()
-        .append("text")
-        .attr("x", function(d,i){ return (Math.floor(i/10) * 200 + 25);})
-        .attr("y", function(d,i){ return i % 10 * 20 + 15; }) // 100 is where the first dot appears. 25 is the distance between dots
-        .style("fill", "black")
+      // ColWidth: pixel size based on max nchar of the labels
+      var legendColWidth = label.reduce(
+        function (a, b) {return a.length > b.length ? a : b;}
+      ).length * 0.6 * legendFontsize + 25;
+      
+      var theLegend= thePlot;
+      var legendHeight, legendWidth, legendNcols, legendNrows, legendCentering;
+      if (legendPos === "beside") { 
+        // vertical layout (fixed height)
+        legendNcols= 1 + Math.floor(label.length * (1.5 * legendFontsize) / height);
+        legendNrows= Math.min(label.length, Math.floor(height / (1.5 * legendFontsize)));
+        legendHeight= height;
+        legendWidth= legendColWidth * legendNcols;
+        legendCentering= (height - (legendNrows * (1.5 * legendFontsize))) / 2;
+        theSvg.attr("height", height).attr("width", width + 2 * legendFontsize + legendWidth);
+      } else { 
+        // horizontal layout (fixed width)
+        legendNcols= Math.min(label.length, Math.floor(width / legendColWidth));
+        legendNrows= Math.ceil(label.length / legendNcols);
+        legendNcols= Math.ceil(label.length / legendNrows);
+        legendHeight= legendNrows * (1.5 * legendFontsize);
+        legendWidth= width;
+        legendCentering= (width - (legendNcols * legendColWidth)) / 2;
+        theSvg.attr("height", height + legendFontsize + legendHeight).attr("width", width);
+      }
+
+      var legenddots = theLegend.selectAll("legenddots")
+        .data(legendReverse ? label.slice().reverse():label).enter()
+        .append("circle").attr("class", "legendElt")
+        .attr("cx", function(d,i){ return (Math.floor(i/legendNrows) * legendColWidth + legendFontsize + (legendPos === "beside" ? 0:(legendFontsize + legendCentering)));})
+        .attr("cy", function(d,i){ return i % legendNrows * (1.5 * legendFontsize) + (0.5 * legendFontsize) + (legendPos === "beside" ? legendCentering:0);})
+        .attr("r", legendFontsize / 2)
+        .style("fill", function(d,i){return legendColors[i];})
+        .attr("transform", "translate(" + (legendPos === "beside" ? (legendFontsize + width):0) + " , " + (legendPos === "beside" ? 0:(legendFontsize + height)) + ")");
+        
+      var legendlabels = theLegend.selectAll("legendlabels")
+        .data(legendReverse ? label.slice().reverse():label).enter()
+        .append("text").attr("class", "legendElt")
+        .attr("x", function(d,i){ return (Math.floor(i/legendNrows) * legendColWidth + 2 * legendFontsize + (legendPos === "beside" ? 0:(legendFontsize + legendCentering)));})
+        .attr("y", function(d,i){ return i % legendNrows * (1.5 * legendFontsize) + (0.8 * legendFontsize) + (legendPos === "beside" ? legendCentering:0);})
+        .style("fill", "black").attr("font-family", "arial").attr("font-size", legendFontsize)
         .text(function(d){ return d;})
-        .attr("text-anchor", "left")
-        .style("alignment-baseline", "left");
+        .attr("text-anchor", "left").style("alignment-baseline", "left")
+        .attr("transform", "translate(" + (legendPos === "beside" ? (legendFontsize + width):0) + " , " + (legendPos === "beside" ? 0:(legendFontsize + height)) + ")");
+        
+        ///////////////////////
+        // Legend interactivity
+        if (plotType === "Circular") {
+          thePlot.selectAll(".legendElt").on('mouseenter', function(m, d) {
+            d3.select("#" + infoId).text("-");
+            d3.select("#" + namesId).text("");
+            d3.select("#" + messageId).text(d);
+            thePlot.selectAll("path.piePart")
+              .transition().duration(50)
+              .attr("stroke", function(dd, di) {return label[dd.var] == d ? "white" : "none";})
+    					.attr("opacity", function(dd, di) {
+    					  if (!transparency) return 0.9; 
+    					  return label[dd.var] == d ? 1 : 0.6;
+    					})
+              .attr("stroke-width",2 * cellSize / 100);
+          })
+          .on('mouseleave', function(m, d) {
+            d3.select("#" + messageId).text("-");
+            thePlot.selectAll("path.piePart")
+              .transition().duration(50)
+              .attr("opacity", 0.9)
+              .attr("stroke","none");
+          });
+        } else if (plotType === "Barplot") {
+          thePlot.selectAll(".legendElt")
+          .on('mouseenter', function(m, d) {
+            d3.select("#" + infoId).text("-");
+            d3.select("#" + namesId).text("");
+            d3.select("#" + messageId).text(d);
+    				thePlot.selectAll("rect.bar")
+    					.transition().duration(50)
+    					.attr("stroke", function(bd, bi) {return label[bd.var]==d ? "white" : "none";})
+    					.attr("stroke-width", function(bd, bi) {return label[bd.var]==d ? 2 * cellSize / 100 : null;})
+    					.attr("opacity", function(bd, bi) {
+    					  if (!transparency) return 0.9;
+    					  return label[bd.var]==d ? 1 : 0.6;
+    					});
+      			})
+    			.on('mouseleave', function(m, d) {
+      		  d3.select("#" + messageId).text("-");
+    				thePlot.selectAll("rect.bar")
+    					.transition().duration(50)
+    					.attr("stroke", "none")
+    					.attr("opacity", 0.9);
+    			});          
+        } else if (plotType === "Boxplot") {
+          thePlot.selectAll(".legendElt")
+          .on('mouseenter', function(m, d) {
+            d3.select("#" + infoId).text("-");
+            d3.select("#" + namesId).text("");
+            d3.select("#" + messageId).text(d);
+    				thePlot.selectAll(".bp")
+    					.transition().duration(50)
+              .attr("opacity", function(bd, bi){
+                if (!transparency) return 1;
+                return label[bd.var] == d ? 1 : 0.5;
+              });
+    				thePlot.selectAll(".bpOutlier")
+    					.transition().duration(50)
+              .attr("opacity", function(bd, bi){
+                if (!transparency) return 1;
+                return label[bd.var] == d ? 1 : 0.5;
+              });
+    		  })
+      		.on('mouseleave', function(m, d) {
+      		  d3.select("#" + messageId).text("-");
+    				thePlot.selectAll(".bp").transition().duration(50).attr("opacity", 1);
+    				thePlot.selectAll(".bpOutlier").transition().duration(50).attr("opacity", 1);
+      		});
+        } else if (plotType === "Pie") {
+          thePlot.selectAll(".legendElt")
+            .on('mouseenter', function(m, d) {
+              d3.select("#" + infoId).text("-");
+              d3.select("#" + namesId).text("");
+              d3.select("#" + messageId).text(d);
+      				thePlot.selectAll("path.piePart")
+      					.transition().duration(50)
+      					.attr("stroke", function(dd) {return label[dd.var] == d ? "white" : "none";})
+      					.attr("stroke-width", cellSize * 0.02);
+      			})
+            .on('mouseleave', function(m, d) {
+        		  d3.select("#" + messageId).text("-");
+      				thePlot.selectAll("path.piePart")
+      				  .transition().duration(50).attr("stroke","none");
+      			});
+        } else if (plotType === "Line") {
+          thePlot.selectAll(".legendElt")
+            .on('mouseenter', function(m, d) {
+              d3.select("#" + infoId).text("-");
+              d3.select("#" + namesId).text("");
+              d3.select("#" + messageId).text(d);
+              var chosenPoint = label.indexOf(d);
+      				thePlot.selectAll(".lineCircle")
+        				.attr("cx", function(cd, ci) {return cd[chosenPoint].px;})
+        				.attr("cy", function(cd, ci) {return cd[chosenPoint].py;});
+            })
+            .on('mouseleave', function(m, d) {
+            });
+       } else if (plotType == "Cloud") {
+         thePlot.selectAll(".legendElt")
+           .on('mouseenter', function(m, d) {
+             d3.select("#" + infoId).text("-");
+             d3.select("#" + namesId).text("");
+             d3.select("#" + messageId).text(d);
+    				 thePlot.selectAll(".cloudCircle")
+    				   .attr("stroke", function(cd, ci) {
+    				     return label[cd.color] === d ? "#111":(labelColor[cd.color]);
+    				   })
+    				   .attr("fill-opacity", function(cd, ci) {
+                 if (!transparency) return 1;
+    				     return label[cd.color] === d ? 1:0.1;
+    				   })
+    				   .attr("stroke-opacity", function(cd, ci) {
+                 if (!transparency) return 1;
+    				     return label[cd.color] === d ? 0.9:0.1;
+    				   });
+             })
+           .on('mouseleave', function(m, d) {
+             d3.select("#" + infoId).text("-");
+             d3.select("#" + namesId).text("");
+             d3.select("#" + messageId).text("-");
+    				 thePlot.selectAll(".cloudCircle")
+    				   .attr("stroke", function(cd, ci) {
+    				     return labelColor[cd.color];
+    				   })
+    				   .attr("fill-opacity", transparency? 0.4:1)
+    				   .attr("stroke-opacity", transparency? 0.8:1);
+           });
+      }
     }
-    
 
     ////////////////////////////////////////////////////////////////////////////
     // Cell plots
@@ -394,7 +557,7 @@ HTMLWidgets.widget({
   			if (transparency) d3.select(this).transition().duration(10).style("fill-opacity", 0.8);
   			d3.select("#" + infoId).text('Cell ' + parseInt(d.cell+1,10) + ', superclass ' +
             superclass[d.cell] + ', N= ' + cellPop[d.cell]);
-  			d3.select("#" + messageId).text(label + ': ' + (realValues[d.cell] == null ? "-" : realValues[d.cell]));
+  			d3.select("#" + messageId).text(forceArray(realValues[d.cell])[0] == null ? "-" : (colorVarName + " : " + realValues[d.cell]));
   			d3.select("#" + namesId).text(cellNames[d.cell]);
   		});
   		cells.on('mouseout', function(m, d, i) {
@@ -617,9 +780,7 @@ HTMLWidgets.widget({
 				.data(lineArray)
 				.enter()
 				.append("circle")
-				.attr("class", function(d, i) {
-					return "circ"+ i;
-				})
+				.attr("class", "lineCircle")
 				.attr("cx", function(d, i) {
 					return lineArray[i][0].px;
 				})
@@ -664,7 +825,7 @@ HTMLWidgets.widget({
   			}
   			chosenPoint= chosenPoint == nVars ? chosenPoint-1 : chosenPoint;
   			
-				thePlot.selectAll("circle")
+				thePlot.selectAll(".lineCircle")
   				.attr("cx", function(cd, ci) {return lineArray[ci][chosenPoint].px;})
   				.attr("cy", function(cd, ci) {return lineArray[ci][chosenPoint].py;});
 
@@ -864,6 +1025,91 @@ HTMLWidgets.widget({
   				thePlot.selectAll("path.piePart")
   				  .transition().duration(50).attr("stroke","none");
   			});
+    } else if(plotType.localeCompare("Cloud")==0) {
+      //////////////////////////////////////////////////////////////////////////
+      // Cloud plot
+      //////////////////////////////////////////////////////////////////////////
+      var cloudArray = [];
+      var cloudTooltip =  d3.select("#" + plotId)
+        .append("div").attr("class", "cloudTooltip").attr("id", "cloudTooltip")
+        .style("position", "fixed")
+        .style("z-index", "10")
+        .style("opacity", 0)
+        .style("font-family", "arial")
+        .style("font-size", legendFontsize + "px")
+        .style("background-color", "white")
+        .style("border", "solid")
+        .style("border-width", "2px")
+        .style("border-radius", "5px")
+        .style("padding", "5px");
+      var ctElt = document.getElementById("cloudTooltip");
+        
+      var sizeMult = (topology == "rectangular" ? 0.7:0.55)
+      for (var iObs = 0; iObs < normalizedValues.length; iObs++) {
+        cloudArray.push({x: normalizedValues[iObs][0] * sizeMult * innerCellSize, 
+                         y: normalizedValues[iObs][1] * sizeMult * innerCellSize, 
+                         obs: iObs,
+                         cell: clustering[iObs] - 1, 
+                         name: realValues[iObs], 
+                         color: cloudColor[iObs]});
+      }
+			var cloudPoints = thePlot.append("g").selectAll(".cloudPoints")
+				.data(cloudArray).enter()
+				.append('circle').attr("class", "cloudCircle")
+				.attr("r", cellSize * 0.05)
+				.attr("fill", function(d) {return(labelColor[d.color])})
+				.attr("stroke", function(d) {return(labelColor[d.color])})
+				.attr("fill-opacity", transparency? 0.3:1)
+		    .attr("stroke-opacity", transparency? 0.8:1)
+		    .attr("stroke-width", cellSize * 0.02)    
+				.attr("cx", function(d) {return(d.x);})
+				.attr("cy", function(d) {return(d.y);})
+				.attr('transform', function(d,i) {
+				  return 'translate(' + (cellPositions[d.cell].x) +',' + cellPositions[d.cell].y + ')';
+				})
+				.on("mouseenter", function(m, d) {
+  				d3.select("#" + messageId)
+  				  .text(d.name + (label.length > 1 ? (" : " + label[d.color]):""));
+
+  				d3.selectAll(".cloudCircle")
+  				  .attr("fill-opacity", function(dd) {
+  				    return transparency ? (dd.obs === d.obs ? 1:0.4):1;
+  				  })
+  				  .attr("stroke", function(dd) {
+  				    return dd.obs === d.obs ? "#111":labelColor[dd.color];
+  				  });
+  				  
+  				if (fullData.length > 0) {
+            var thetitle = "<strong>" + d.name + "</strong>" + "<table>";
+            for (var iVar= 0; iVar < fullData[0].length; iVar++) {
+              thetitle += "<tr> <td> <strong>" + forceArray(fullDataNames)[iVar] + "</strong> &nbsp;</td><td>" + fullData[d.obs][iVar] + "</td></tr>";
+            }
+            thetitle += "</table>";
+            cloudTooltip.style("opacity", 1).html(thetitle);
+            // Adaptive placement for tooltip
+            if ((cellPositions[d.cell].col + 1) > (nbColumns / 2)) {
+              cloudTooltip.style("left", (m.clientX - cellSize / 4 - ctElt.clientWidth) + "px");
+            } else {
+              cloudTooltip.style("left", (m.clientX + cellSize / 4) + "px");
+            }
+            // Ensure that the tooltip is not cut by top or bottom of window
+            var theRow = (topology === "hexagonal" ? (cellPositions[d.cell].row - 1):(nbRows - 1 - cellPositions[d.cell].row));
+            var ctTop = m.clientY - ((theRow + 1) > (nbRows / 2) ? ctElt.clientHeight:0);
+            if (ctTop + ctElt.clientHeight > window.innerHeight)
+              ctTop = window.innerHeight - ctElt.clientHeight;
+            if (ctTop < 0) ctTop = 0;
+            cloudTooltip.style("top", ctTop + "px");
+  				}
+				})
+				.on("mouseleave", function(m, d) {
+  				cloudTooltip.style("opacity", 0).html("");
+				  d3.select("#" + messageId).text("-");
+  				d3.selectAll(".cloudCircle")
+						.attr("fill-opacity", transparency? 0.4:1)
+  				  .attr("stroke", function(dd) {
+  				    return labelColor[dd.color];
+  				  });
+				});
     }
   }, 
          resize: function(width, height) {}

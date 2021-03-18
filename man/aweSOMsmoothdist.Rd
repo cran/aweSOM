@@ -8,7 +8,8 @@ aweSOMsmoothdist(
   som,
   pal = c("viridis", "grey", "rainbow", "heat", "terrain", "topo", "cm",
     rownames(RColorBrewer::brewer.pal.info)),
-  reversePal = FALSE
+  reversePal = FALSE,
+  legendFontsize = 14
 )
 }
 \arguments{
@@ -20,18 +21,16 @@ palette name of the RColorBrewer package.}
 
 \item{reversePal}{logical, whether color palette should be reversed. Default
 is FALSE.}
+
+\item{legendFontsize}{numeric, the font size for the legend. Default 14.}
 }
 \value{
-No return value, called for side effects.
+Returns an object of classes \code{gg} and \code{ggplot}.
 }
 \description{
 Plots a visualization of the distances between the SOM cells. Based on the
 U-Matrix, which is computed for each cell as the mean distance to its
 immediate neighbors.
-}
-\details{
-Note: the resulting smooth distance plot is inexact for the
-  hexagonal map layout.
 }
 \examples{
 ## Build training data
@@ -42,8 +41,6 @@ dat <- scale(dat)
 ### Initialization (PCA grid)
 init <- somInit(dat, 4, 4)
 ok.som <- kohonen::som(dat, grid = kohonen::somgrid(4, 4, 'rectangular'),
-                       rlen = 100, alpha = c(0.05, 0.01),
-                       radius = c(2.65,-2.65), init = init,
-                       dist.fcts = 'sumofsquares')
+                       init = init)
 aweSOMsmoothdist(ok.som)
 }

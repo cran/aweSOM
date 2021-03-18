@@ -11,7 +11,7 @@ train.data <- full.data[, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Peta
 train.data <- scale(train.data)
 
 ### RNG Seed (for reproducibility)
-set.seed(31388)
+set.seed(1465)
 ### Initialization (PCA grid)
 init <- somInit(train.data, 4, 4)
 ## Train SOM
@@ -28,6 +28,12 @@ superclasses_pam <- superclust_pam$clustering
 
 superclust_hclust <- hclust(dist(iris.som$codes[[1]]), "complete")
 superclasses_hclust <- cutree(superclust_hclust, 3)
+
+## -----------------------------------------------------------------------------
+aweSOMplot(som = iris.som, type = "Cloud", data = full.data, 
+           variables = c("Species", "Sepal.Length", "Sepal.Width",  
+                         "Petal.Length", "Petal.Width"), 
+           superclass = superclasses_pam)
 
 ## -----------------------------------------------------------------------------
 aweSOMplot(som = iris.som, type = "Hitmap", superclass = superclasses_pam)

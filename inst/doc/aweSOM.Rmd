@@ -43,7 +43,7 @@ train.data <- full.data[, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Peta
 train.data <- scale(train.data)
 
 ### RNG Seed (for reproducibility)
-set.seed(31388)
+set.seed(1465)
 ### Initialization (PCA grid)
 init <- somInit(train.data, 4, 4)
 ## Train SOM
@@ -90,6 +90,17 @@ superclasses_hclust <- cutree(superclust_hclust, 3)
 
 ```aweSOMplot``` creates a variety of different interactive SOM visualizations. 
 Using the ```type``` argument to the function, one the following types of plots can be created:
+
+* **Observations Cloud**: visualize the observations as points inside their cell. Points can optionally be colored according to a variable of the data, as here by the Species of the iris (a variable not used during training). Other variables can be displayed in an interactive title box for each observation.
+
+```{r}
+aweSOMplot(som = iris.som, type = "Cloud", data = full.data, 
+           variables = c("Species", "Sepal.Length", "Sepal.Width",  
+                         "Petal.Length", "Petal.Width"), 
+           superclass = superclasses_pam)
+```
+
+Several placement methods are available for the cloud, the one used here (```"cellPCA"```) is a PCA on the training data of each cell, independently.
 
 * **Hitmap** or **population map**: visualizes the number of observation per cell. The areas of the inner shapes are proportional to their population.  
 The background colors indicate the superclasses. The palette of these colors can be adapted using the ```palsc``` argument.

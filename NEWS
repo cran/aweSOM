@@ -1,3 +1,22 @@
+aweSOM 1.2
+
+Fixed bugs:
+  Fixed cell placement in interactive graphs (they were flipped wrt kohonen package, and incorrect for hex topology with odd number of rows)
+  Fixed cell placement in smooth distance plot
+  Fixed bug in somInit when using PCA initialization (reverted to prcomp)
+
+Improvements:
+  New legend for graph, interactive in html, present in svg
+  New "cloud" plot
+  Improved "smooth distance" plot
+  Several improvements in the shiny UI, more user-friendly and stable
+  In shiny UI, possibility to change numeric to factor and vice-versa
+
+Misc:
+  New logo, and updated UI theme to match
+
+
+********************************************************************************
 aweSOM 1.1
 
 Fixed bugs:

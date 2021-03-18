@@ -1,7 +1,7 @@
 Package: aweSOM
 Title: Interactive Self-Organizing Maps
-Version: 1.1
-Date: 2021-02-15
+Version: 1.2
+Date: 2021-03-18
 Authors@R: c(person("Julien", "Boelaert", role= c("aut", "cre"), email="julien.boelaert@univ-lille.fr"), 
              person("Etienne", "Ollion", role= "aut"), 
              person("Jan", "Sodoge", role= "aut"), 
@@ -13,15 +13,16 @@ Authors@R: c(person("Julien", "Boelaert", role= c("aut", "cre"), email="julien.b
 Description: Self-organizing maps (also known as SOM, see Kohonen (2001) <doi:10.1007/978-3-642-56927-2>) are a method for dimensionality reduction and clustering of continuous data. This package introduces interactive (html) graphics for easier analysis of SOM results. It also features an interactive interface, for push-button training and visualization of SOM on numeric, categorical or mixed data, as well as tools to evaluate the quality of SOM.
 License: GPL (>= 2)
 Depends: R (>= 3.1.0)
-Imports: kohonen, shiny, htmlwidgets, rmarkdown, htmltools, rclipboard,
-        RColorBrewer, viridis, data.table, DT, kernlab, stats, cluster,
-        e1071, haven, foreign, readxl
+Imports: kohonen (>= 2.0), shiny (>= 1.6), htmlwidgets, bslib,
+        rmarkdown, htmltools, rclipboard, ggplot2, RColorBrewer,
+        viridis, data.table, DT, kernlab, fields, stats, cluster,
+        e1071, haven, foreign, readxl, readODS
 Suggests: knitr
 VignetteBuilder: knitr
 Encoding: UTF-8
 RoxygenNote: 7.1.1
 NeedsCompilation: no
-Packaged: 2021-02-15 09:57:24 UTC; bart
+Packaged: 2021-03-18 17:59:20 UTC; bart
 Author: Julien Boelaert [aut, cre],
   Etienne Ollion [aut],
   Jan Sodoge [aut],
@@ -32,4 +33,4 @@ Author: Julien Boelaert [aut, cre],
   Samuel Hym [ctb]
 Maintainer: Julien Boelaert <julien.boelaert@univ-lille.fr>
 Repository: CRAN
-Date/Publication: 2021-02-15 10:40:05 UTC
+Date/Publication: 2021-03-18 18:30:02 UTC

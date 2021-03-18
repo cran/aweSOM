@@ -7,7 +7,7 @@ params:
 ---
 
 ```{r}
-library(aweSOM) # version 1.1
+library(aweSOM) # version 1.2
 ```
 
 Import the data

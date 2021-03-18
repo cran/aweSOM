@@ -48,25 +48,29 @@ somInit <- function(traindat, nrows, ncols,
       x.ev <- 2
       y.ev <- 1
     }
-    # perform PCA
-    pcadat <- apply(traindat, 2, function(x) {x[is.na(x)] <- mean(x, na.rm = T); x})
-    traindata.pca <- princomp(pcadat) # use princomp for the fix_sign argument
-    init.x <- seq(from= quantile(traindata.pca$scores[,x.ev], .025), 
-                  to= quantile(traindata.pca$scores[,x.ev], .975),
+    # perform PCA (NA filled with mean, PCA rotated so that the first variable
+    # is positively correlated with each principal axis)
+    pcadat <- apply(traindat, 2, 
+                    function(x) {x[is.na(x)] <- mean(x, na.rm = T); x})
+    traindata.pca <- prcomp(pcadat)
+    traindata.pca$x <- traindata.pca$x %*% diag(sign(traindata.pca$rotation[1, ]))
+    init.x <- seq(from= quantile(traindata.pca$x[,x.ev], .025), 
+                  to= quantile(traindata.pca$x[,x.ev], .975),
                   length.out= nrows)
-    init.y <- seq(from= quantile(traindata.pca$scores[,y.ev], .025), 
-                  to= quantile(traindata.pca$scores[,y.ev], .975),
+    init.y <- seq(from= quantile(traindata.pca$x[,y.ev], .025), 
+                  to= quantile(traindata.pca$x[,y.ev], .975),
                   length.out= ncols)
     init.base <- as.matrix(expand.grid(x= init.x, y= init.y)) # here a hex variant could be created instead if hex topology
     
     if (method == "pca.sample") {
-      ## As in SOMbrero, init to observations closest to a 2D PCA grid
+      ## Init to observations closest to a 2D PCA grid
       closest.obs <- apply(init.base, 1, function(point) 
-        which.min(colSums((t(traindata.pca$scores[,c(x.ev,y.ev)])-point)^2)))
+        which.min(colSums((t(traindata.pca$x[,c(x.ev,y.ev)])-point)^2)))
       init <- traindat[closest.obs,]
     } else if (method == "pca") {
-      ## Pure PCA grid
-      init <- tcrossprod(init.base, traindata.pca$loadings[, 1:2])
+      ## Pure PCA grid 
+      init <- tcrossprod(init.base, traindata.pca$rotation[, 1:2]) %*%
+        diag(sign(traindata.pca$rotation[1, ]))
     }
   } 
   init

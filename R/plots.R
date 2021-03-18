@@ -66,7 +66,11 @@ getPalette <- function(pal, n, reverse= FALSE) {
 #' ## Plot superclasses dendrogram
 #' aweSOMdendrogram(superclust, 2)
 aweSOMdendrogram <- function(clust, nclass){
-  if (is.null(clust)) return(NULL);
+  if (is.null(clust)) return(NULL)
+  if (!("hclust" %in% class(clust))) {
+    warning("argument 'clust' must be of class 'hclust'")
+    return(NULL)
+  }
   plot(clust, xlab= "", main= "")
   if (nclass > 1)
     rect.hclust(clust, k= nclass)
@@ -153,12 +157,10 @@ aweSOMscreeplot <- function(som, nclass= 2,
 #'   palette name of the RColorBrewer package.
 #' @param reversePal logical, whether color palette should be reversed. Default
 #'   is FALSE.
+#' @param legendFontsize numeric, the font size for the legend. Default 14.
 #'
-#' @return No return value, called for side effects.
+#' @return Returns an object of classes \code{gg} and \code{ggplot}.
 #' 
-#' @details Note: the resulting smooth distance plot is inexact for the
-#'   hexagonal map layout.
-#'
 #' @examples
 #' ## Build training data
 #' dat <- iris[, c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width")]
@@ -168,23 +170,40 @@ aweSOMscreeplot <- function(som, nclass= 2,
 #' ### Initialization (PCA grid)
 #' init <- somInit(dat, 4, 4)
 #' ok.som <- kohonen::som(dat, grid = kohonen::somgrid(4, 4, 'rectangular'),
-#'                        rlen = 100, alpha = c(0.05, 0.01),
-#'                        radius = c(2.65,-2.65), init = init,
-#'                        dist.fcts = 'sumofsquares')
+#'                        init = init)
 #' aweSOMsmoothdist(ok.som)
 aweSOMsmoothdist <- function(som, 
-                             pal= c("viridis", "grey", "rainbow", "heat", "terrain", 
-                                    "topo", "cm", rownames(RColorBrewer::brewer.pal.info)), 
-                             reversePal= FALSE) {
+                             pal = c("viridis", "grey", "rainbow", "heat", 
+                                     "terrain", "topo", "cm", 
+                                     rownames(RColorBrewer::brewer.pal.info)), 
+                             reversePal = FALSE, 
+                             legendFontsize = 14) {
   if (is.null(som)) return(NULL)
   pal <- match.arg(pal)
   
   mapdist <- aweSOM::somDist(som)
-  values <- matrix(rowMeans(mapdist$proto.data.dist.neigh, na.rm= TRUE), 
-                   som$grid$ydim, som$grid$xdim)
-  filled.contour(1:som$grid$ydim, 1:som$grid$xdim,
-                 values[, 1:som$grid$xdim],
-                 color.palette= function(y) paste0(getPalette(pal, y, reversePal), "FF"))
+  plates <- fields::Tps(x = som$grid$pts, 
+                        Y = rowMeans(mapdist$proto.data.dist.neigh,
+                                     na.rm= TRUE), 
+                        give.warnings = FALSE)
+  interpol <- expand.grid(x = seq(min(som$grid$pts[, 1]) - 0.25, 
+                                  max(som$grid$pts[, 1]) + 0.25, by = 0.1), 
+                          y = seq(min(som$grid$pts[, 2]) - 0.25, 
+                                  max(som$grid$pts[, 2]) + 0.25, by = 0.1))
+  interpol <- data.frame(interpol, 
+                         z = fields::predict.Krig(plates, interpol)[, 1])
+  ggplot2::ggplot(interpol, ggplot2::aes_string(x = "x", y = "y", z = "z")) + 
+    ggplot2::geom_contour_filled(binwidth = 1.2 * diff(range(interpol$z)) / 8, 
+                                 na.rm = TRUE) + 
+    ggplot2::geom_point(data= data.frame(som$grid$pts, z = NA), 
+                        size = legendFontsize / 10) +
+    ggplot2::theme_void() + ggplot2::coord_fixed() + 
+    ggplot2::scale_fill_discrete(
+      type = getPalette(pal, 8, reversePal), 
+      guide = ggplot2::guide_legend(reverse = TRUE, title = "Distance")) + 
+    ggplot2::theme(
+      legend.text = ggplot2::element_text(size = legendFontsize), 
+      legend.title = ggplot2::element_text(size = legendFontsize + 2))
 }
 
 
@@ -243,18 +262,19 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
                           normtype, valueFormat,
                           palsc, palplot, reversePal, 
                           plotOutliers, showSC, equalSize, 
-                          showAxes, transparency, showNames= TRUE) {
+                          showAxes, transparency, showNames= TRUE, 
+                          legendPos= "below", legendFontsize= 14, 
+                          cloudType, cloudSeed) {
   
   ##########
   ## Common parameters for all plots
   ##########
-  
   somsize <- nrow(som$grid$pts)
   clustering <- factor(som$unit.classif, 1:somsize)
   clust.table <- table(clustering)
   
-  gridInfo <- list(nbLines= som$grid$xdim,
-                   nbColumns= som$grid$ydim,
+  gridInfo <- list(nbLines= som$grid$ydim,
+                   nbColumns= som$grid$xdim,
                    topology= ifelse(som$grid$topo == "rectangular", 
                                     'rectangular', "hexagonal"))
   n.sc <- length(unique(superclass))
@@ -265,16 +285,33 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
               superclass= superclass, 
               superclassColor= superclassColor, 
               cellNames= cellNames, 
+              clustering= as.numeric(clustering),
               cellPop= unname(clust.table), 
               showAxes= showAxes, 
               transparency= transparency, 
-              showNames= showNames)
-  
-  
-  if (type %in% c("Pie", "CatBarplot")) {
+              showNames= showNames,
+              legendPos= legendPos, 
+              legendFontsize= legendFontsize, 
+              legendReverse= FALSE)
+
+  if (type == "Cloud") {
+    fulldata <- data[, varnames[-1], drop = FALSE]
+    varnames <- varnames[1]
+    if (varnames == "None") {
+      data <- NULL
+    } else data <- data[, varnames]
+  }
+  if (type %in% c("Pie", "CatBarplot", "Cloud")) if (!is.null(data)) {
     if (length(dim(data)) == 2) data <- data[, varnames]
-    if (is.numeric(data)) if (length(unique(data)) > 30) data <- cut(data, 30)
-    data <- as.factor(data)
+    if (is.numeric(data)) {
+      ## Transform Numeric variables into factors with max 8 levels
+      if (length(unique(data)) > 8) {
+        data <- cut(data, 8)
+      } else data <- as.factor(data)
+      if (legendPos == "beside") {
+        res$legendReverse <- TRUE
+      }
+    } else data <- as.factor(data)
     unique.values <- levels(data)
     nvalues <- nlevels(data)
   }
@@ -336,6 +373,20 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
         normValues <- apply(normValues, 2, function(x) 
           getPalette(palplot, 8, reversePal)[cut(x, seq(.049, .951, length.out= 9))])
         normValues[is.na(normValues)] <- "#FFFFFF"
+        
+        ## reallevels: for legend, levels of cuts in real vars
+        if (normtype %in% c("same", "range")) {
+          reallevels <- levels(cut(data[, 1], breaks = 8))
+        } else if (normtype == "contrast") {
+          if (valueFormat == "mean") {
+            realcolvalues <- sapply(split(data[, 1], clustering), mean, na.rm = TRUE)
+          } else if (valueFormat == "median") {
+            realcolvalues <- sapply(split(data[, 1], clustering), median, na.rm = TRUE)
+          } else if (valueFormat == "prototypes") {
+            realcolvalues <- data
+          }
+          reallevels <- levels(cut(realcolvalues, breaks = 8))
+        }
       }
     } else if (type == "Boxplot") {
       if (valueFormat == "prototypes") {
@@ -365,6 +416,7 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
     normValues <- getPalette(palplot, 8, reversePal)[cut(normValues , seq(-.001, 1.001, length.out= 9))]
     varnames <- "Mean distance to neighbors"
     type <- "Color"
+    reallevels <- levels(cut(realValues, breaks= 8))
     res$plotType <- "Color"
   }
   
@@ -373,20 +425,31 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
   ## Generate plot-type specific list of arguments
   ##########
   
-
   if (type == "Hitmap") {
     res$normalizedValues <- unname(.9 * sqrt(clust.table) / sqrt(max(clust.table)))
     res$realValues <- unname(clust.table)
   } else if (type %in% c("Circular", "Line", "Barplot", "Color", "Radar")) {
-    if (type != "Color") {
-      res$nVars <- nvar
-      res$labelColor <- getPalette(palplot, nvar, reversePal)
-    }
     res$label <- varnames
     res$normalizedValues <- unname(normValues)
     res$realValues <- unname(realValues)
     res$isCatBarplot <- FALSE
     res$showSC <- showSC
+    if (type != "Color") {
+      res$nVars <- nvar
+      res$labelColor <- getPalette(palplot, nvar, reversePal)
+    }
+    if (type == "Line") {
+      res$labelColor <- rep("#808080", nvar)
+    }
+    if (type == "Color") {
+      res$labelColor <- getPalette(palplot, 8, reversePal)
+      res$label <- reallevels
+      res$colorVarName <- varnames
+      if (legendPos == "beside") {
+        res$labelColor <- rev(res$labelColor)
+        res$label <- rev(res$label)
+      }
+    }
   } else if (type == "Boxplot") {
     res$nVars <- nvar
     res$label <- varnames
@@ -442,6 +505,76 @@ getPlotParams <- function(type, som, superclass, data, plotsize,
                                             .05 + .9 * unname(table(x) / length(x)) / maxValue
                                           }))
     res$plotType <- "Barplot"
+  } else if (type == "Cloud") {
+    if (cloudType == "cellPCA") {
+      cloudtraindata <- apply(som$data[[1]], 2, 
+                              function(x) {x[is.na(x)] <- mean(x, na.rm = T); x})
+      clouddata <- matrix(NA, nrow(som$data[[1]]), 2)
+      for (iCell in unique(som$unit.classif)) {
+        theObs <- som$unit.classif == iCell
+        if (sum(theObs) == 1) {
+          clouddata[theObs, ] <- c(0, 0)
+        } else if (sum(theObs) == 2) { ## If only two points, include prototype
+          clouddata[theObs, ] <- stats::prcomp(rbind(som$codes[[1]][iCell, ], 
+                                                     cloudtraindata[theObs, ]))$x[-1, 1:2]
+        } else {
+          clouddata[theObs, ] <- stats::prcomp(cloudtraindata[theObs, ])$x[, 1:2]
+        }
+        if (sum(theObs) > 1) 
+          clouddata[theObs, ] <- 0.5 * clouddata[theObs, ] / max(abs(clouddata[theObs, ]))
+      }
+    } else if (cloudType == "kPCA") {
+      clouddata <- som$data[[1]] - som$codes[[1]][som$unit.classif, ]
+      clouddata <- apply(clouddata, 2,
+                         function(x) {x[is.na(x)] <- mean(x, na.rm = T); x})
+      clouddata <- kernlab::kpca(clouddata)@rotated[, 1:2]
+      clouddata <- apply(clouddata, 2, function(x) (x - min(x)) / (max(x) - min(x)) - 0.5)
+    } else if (cloudType == "PCA") {
+      clouddata <- som$data[[1]] - som$codes[[1]][som$unit.classif, ]
+      clouddata <- apply(clouddata, 2,
+                         function(x) {x[is.na(x)] <- mean(x, na.rm = T); x})
+      clouddata <- stats::prcomp(clouddata)$x[, 1:2]
+      clouddata <- apply(clouddata, 2, function(x) (x - min(x)) / (max(x) - min(x)) - 0.5)
+    } else if (cloudType == "proximity") {
+      theSomDist <- aweSOM::somDist(som)
+      dist1 <- rowSums((som$codes[[1]][som$unit.classif, , drop = FALSE] -
+                          som$data[[1]])^2, na.rm = TRUE)
+      bmu2 <- t(sapply(1:nrow(som$data[[1]]), function(iObs) {
+        theProtos <- c(which(theSomDist$neigh.matrix[som$unit.classif[iObs], ]))
+        protodists <- rowSums(t(t(som$codes[[1]][theProtos, , drop = FALSE]) -
+                                  som$data[[1]][iObs, ])^2, na.rm = TRUE)
+        c(theProtos[which.min(protodists)], min(protodists))
+      }))
+      wmat <- matrix(0, nrow(som$data[[1]]), nrow(som$grid$pts))
+      wmat[cbind(1:nrow(som$data[[1]]), som$unit.classif)] <- dist1
+      wmat[cbind(1:nrow(som$data[[1]]), bmu2[, 1])] <- bmu2[, 2]
+      wmat <- wmat / rowSums(wmat)
+      clouddata <- wmat %*% som$grid$pts
+      clouddata <- .6 * (clouddata - som$grid$pts[som$unit.classif, ])
+      clouddata[, 2] <- -clouddata[, 2]
+    } else if (cloudType == "random") {
+      if (!is.na(cloudSeed)) set.seed(cloudSeed)
+      clouddata <- matrix(ncol = 2, stats::runif(2 * nrow(som$data[[1]]), 
+                                                 min = -0.5, max = 0.5))
+    }
+    
+    res$normalizedValues <- clouddata
+    res$realValues <- cellNames
+    res$cellNames <- unname(lapply(split(cellNames, clustering),
+                                   function(x) paste(x, collapse= ", ")))
+    if (is.null(data)) {
+      res$legendPos <- "none"
+      res$label <- ""
+      res$labelColor <- getPalette(palplot, 2, reversePal)[1]
+      res$cloudColor <- rep(0, length(clustering))
+    } else {
+      res$label <- levels(data)
+      res$labelColor <- getPalette(palplot, nvalues, reversePal)
+      res$cloudColor <- as.numeric(data) - 1
+    }
+    fulldata <- sapply(fulldata, function(x) as.character(x))
+    res$fullData <- as.matrix(fulldata)
+    res$fullDataNames <- colnames(fulldata)
   }
   
   res
@@ -456,7 +589,8 @@ aweSOMwidget <- function(ok.som, ok.sc, ok.data, ok.trainrows,
                          graphType, plotNames, plotVarMult, plotVarOne, 
                          plotSize, plotOutliers, plotEqualSize, plotShowSC,
                          contrast, average_format, palsc, palplot, plotRevPal,
-                         plotAxes, plotTransparency, 
+                         plotAxes, plotTransparency, legendPos, legendFontsize,
+                         cloudType, cloudSeed,
                          width = NULL, height = NULL, elementId = NULL) {
   
   if (is.null(ok.som))
@@ -488,9 +622,16 @@ aweSOMwidget <- function(ok.som, ok.sc, ok.data, ok.trainrows,
   } else if (graphType %in% c("Hitmap")) {
     plotVar <- NULL
     data <- NULL
-  } else if (graphType %in% c("Names")) {
-    plotVar <- NULL
-    data <- as.character(plot.data[, plotVarOne])
+  } else if (graphType == "Cloud") {
+    if (is.null(plotVarOne)) return(NULL)
+    plotVar <- c(plotVarOne, plotVarMult)
+    data <- plot.data
+    # if (plotVar == "None") {
+    #   data <- NULL
+    # } else {
+    #   data <- plot.data[, plotVar]
+    # }
+    cellNames <- plotNames.var
   }
   
   plotParams <- getPlotParams(graphType, ok.som, ok.sc, data, plotSize, 
@@ -498,7 +639,9 @@ aweSOMwidget <- function(ok.som, ok.sc, ok.data, ok.trainrows,
                               contrast, average_format,
                               palsc, palplot, plotRevPal, 
                               plotOutliers, plotShowSC, plotEqualSize, 
-                              plotAxes, plotTransparency)
+                              plotAxes, plotTransparency, 
+                              legendPos= legendPos, legendFontsize= legendFontsize, 
+                              cloudType = cloudType, cloudSeed = cloudSeed)
 
   # create the widget
   htmlwidgets::createWidget("aweSOMwidget", plotParams, elementId = elementId, 
@@ -535,22 +678,19 @@ aweSOMwidget_html = function(id, style, class, ...){
 #'
 #' @param som \code{kohonen} object, a SOM created by the \code{kohonen::som} function.
 #' @param type character, the plot type. The default "Hitmap" is a population
-#'   map. "UMatrix" plots the average distance of each cell to its neighbors, on
-#'   a color scale. "Circular" (barplot), "Barplot", "Boxplot", "Radar" and
-#'   "Line" are for numeric variables. "Color" (heat map) is for a single
-#'   numeric variable. "Pie" (pie chart) and "CatBarplot" are for a single
-#'   categorical (factor) variable.
+#'   map. "Cloud" plots the observations as a scatterplot within each cell (see
+#'   Details). "UMatrix" plots the average distance of each cell to its
+#'   neighbors, on a color scale. "Circular" (barplot), "Barplot", "Boxplot",
+#'   "Radar" and "Line" are for numeric variables. "Color" (heat map) is for a
+#'   single numeric variable. "Pie" (pie chart) and "CatBarplot" are for a
+#'   single categorical (factor) variable.
 #' @param data data.frame containing the variables to plot. This is typically
 #'   not the training data, but rather the unscaled original data, as it is
 #'   easier to read the results in the original units, and this allows to plot
 #'   extra variables not used in training. If not provided, the training data is
 #'   used.
 #' @param variables character vector containing the names of the variable(s) to
-#'   plot. The selected variables must be numeric for types "Circular",
-#'   "Barplot", "Boxplot", "Radar", "Color" and "Line", or factor for types
-#'   "Pie" and "CatBarplot". If not provided, all columns of data will be
-#'   selected. If a numeric variable is provided to a "Pie" or "CatBarplot", it
-#'   will be split into a maximum of 30 classes.
+#'   plot. See Details. 
 #' @param superclass integer vector, the superclass of each cell of the SOM.
 #' @param obsNames character vector, names of the observations to be displayed
 #'   when hovering over the cells of the SOM. Must have a length equal to the
@@ -583,15 +723,69 @@ aweSOMwidget_html = function(id, style, class, ...){
 #'   observations in the cells.
 #' @param showNames logical, whether to display the observations names in a box
 #'   below the plot.
+#' @param legendPos character, whether and where to display the legend (if
+#'   applicable). Possible values are "beside", "below" or "none".
+#' @param legendFontsize numeric, font size to use for the legend, and for the
+#'   tooltip information of the "Cloud" plot. Default is 14.
+#' @param cloudType character, for "Cloud" type, controls how the point
+#'   coordinates are computed, see Details.
+#' @param cloudSeed numeric, for "random Cloud" type, seed for the pseudo-random
+#'   placement of the points. If NA (the default), no seed will be set.
 #' @param elementId character, user-defined elementId of the widget. Can be
 #'   useful for user extensions when embedding the result in an html page.
 #'
-#' @details Variables scales: All values that are used for the plots (means, medians, prototypes) are scaled to 0-1 for display (minimum height to maximum height). The \code{scales} parameter controls how this scaling is done.
+#' @details 
+#' The selected \code{variables} must be numeric for types "Circular",
+#'   "Barplot", "Boxplot", "Radar", "Color" and "Line", or factor for types
+#'   "Pie" and "CatBarplot". If not provided, all columns of data will be
+#'   selected. If a numeric variable is provided to a "Cloud", "Pie" or
+#'   "CatBarplot", it will be split into a maximum of 8 classes. For "Cloud"
+#'   plots, the first element of \code{variables} is used to color the points
+#'   (and can be "None" for no coloring), the following elements (if any) are
+#'   used in the information box of each point.
+#' 
+#' Variables scales: All values that are used for the plots (means,
+#'   medians, prototypes) are scaled to 0-1 for display (minimum height to
+#'   maximum height). The \code{scales} parameter controls how this scaling is
+#'   done.
 #' \itemize{
-#' \item{"contrast"}: for each variable, the minimum height is the minimum observed mean/median/prototype on the map, the maximum height is the maximum on the map. This ensures maximal contrast on the plot.
-#' \item{"range"}: observation range; for each variable, the minimum height corresponds to the minimum of that variable over the whole dataset, the maximum height to the maximum of the variable on the whole dataset.
-#' \item{"same"}: same scales; all heights are displayed on the same scale, using the global minimum and maximum of the dataset.
+#' \item{"contrast"}: for each variable, the minimum height is the minimum
+#' observed mean/median/prototype on the map, the maximum height is the maximum
+#' on the map. This ensures maximal contrast on the plot.
+#' \item{"range"}: observation range; for each variable, the minimum height
+#' corresponds to the minimum of that variable over the whole dataset, the
+#' maximum height to the maximum of the variable on the whole dataset.
+#' \item{"same"}: same scales; all heights are displayed on the same scale,
+#' using the global minimum and maximum of the dataset.
 #' }
+#' 
+#' Cloud plot: three types of cloud plots are available, controlled by the
+#' \code{cloudType} argument:
+#' \itemize{
+#' \item{"cellPCA"}: (default) the point coordinates are computed cell by cell,
+#' by computing a PCA on the training data of that cell only. Points close to
+#' the center of the cell are close to the mean of its observations. Points far
+#' apart within a cell are likely to have different characteristics.
+#' \item{"kPCA"}: the point coordinates are computed globally, by a kernel PCA
+#' performed on all the differences between the training data and their winning
+#' prototypes. Points close to the center of their cell are close to their
+#' prototype, and points with similar placements in the clouds thus have a
+#' similar difference to their prototype. Not recommended for large datasets
+#' (eg. > 1000 observations), as it tends to take too much memory.
+#' \item{"PCA"}: the point coordinates are computed globally, by a PCA
+#' performed on all the differences between the training data and their winning
+#' prototypes. Points close to the center of their cell are close to their
+#' prototype, and points with similar placements in the clouds thus have a
+#' similar difference to their prototype.
+#' \item{"proximity"}: the point coordinates are computed one by one, based on
+#' the distances of the observation's training data to its cell's prototype and
+#' to its second best matching prototypes among its cell's neighbors. Points
+#' close to their cell's center are close to their closest prototype, while
+#' points close to another cell are close to that cell's prototype.
+#' \item{"random"}: the point coordinates are random samples from a uniform
+#' distribution.
+#' }
+#' 
 #' 
 #' @return Returns an object of class \code{htmlwidget}.
 #'
@@ -611,11 +805,15 @@ aweSOMwidget_html = function(id, style, class, ...){
 #' superclust <- cluster::pam(ok.som$codes[[1]], 2)
 #' superclasses <- superclust$clustering
 #'
+#' ## Observations cloud ('Cloud')
+#' variables <- c("Sepal.Length", "Sepal.Width",  "Petal.Length", "Petal.Width")
+#' aweSOMplot(som = ok.som, type = 'Cloud', data = iris, 
+#'            variables = c("Species", variables), superclass = superclasses)
+#' 
 #' ## Population map ('Hitmap')
 #' aweSOMplot(som = ok.som, type = 'Hitmap', superclass = superclasses)
 #'
 #' ## Plots for numerical variables
-#' variables <- c("Sepal.Length", "Sepal.Width",  "Petal.Length", "Petal.Width")
 #' ## Circular barplot
 #' aweSOMplot(som = ok.som, type = 'Circular', data = iris,
 #'            variables= variables, superclass = superclasses)
@@ -631,9 +829,9 @@ aweSOMwidget_html = function(id, style, class, ...){
 #' aweSOMplot(som = ok.som, type = 'CatBarplot', data = iris,
 #'            variables= "Species", superclass = superclasses)
 
-aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot", 
-                                    "Boxplot", "Radar", "Line", "Color",
-                                    "Pie", "CatBarplot"), 
+aweSOMplot <- function(som, type= c("Hitmap", "Cloud", "UMatrix", "Circular", 
+                                    "Barplot", "Boxplot", "Radar", "Line", 
+                                    "Color", "Pie", "CatBarplot"), 
                        data= NULL, variables= NULL, superclass= NULL, 
                        obsNames= NULL,
                        scales= c("contrast", "range", "same"), 
@@ -650,6 +848,10 @@ aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot",
                        showSC = TRUE,
                        pieEqualSize= FALSE,
                        showNames= TRUE,
+                       legendPos= c("beside", "below", "none"),
+                       legendFontsize= 14,
+                       cloudType= c("cellPCA", "kPCA", "PCA", "proximity", "random"),
+                       cloudSeed= NA,
                        elementId= NULL) {
 
   type <- match.arg(type)
@@ -657,21 +859,29 @@ aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot",
   values <- match.arg(values)
   palsc <- match.arg(palsc)
   palvar <- match.arg(palvar)
+  legendPos <- match.arg(legendPos)
+  cloudType <- match.arg(cloudType)
   
   if (!("kohonen" %in% class(som)))
     stop("`som` argument must be a `kohonen` object, created by `kohonen::som`")
   
-  if (type %in% c("Circular", "Barplot", "Boxplot", "Radar", "Line", "Color", "Pie", "CatBarplot")) {
+  if (type %in% c("Circular", "Barplot", "Boxplot", "Radar", "Line", "Color", "Cloud", "Pie", "CatBarplot")) {
     if (is.null(data)) ## If no data, fall back on training data
       data <- som$data[[1]]
     
     if (nrow(data) != nrow(som$data[[1]])) 
       stop("`data` must have the same number of rows as the training data.")
     
-    if (is.null(variables)) ## If no variables, fall back on all columns
-      variables <- colnames(data)
+    if (is.null(variables)) {
+      if (type == "Cloud") {
+        variables <- "None"
+      } else {
+        ## If no variables, fall back on all columns
+        variables <- colnames(data)
+      }
+    }
     
-    if (! all(variables %in% colnames(data))) 
+    if (! all(variables %in% c("None", colnames(data))))
       stop(paste0("Variables < ", 
                   paste(variables[! (variables %in% colnames(data))], collapse= " , "),
                   " > not found in data"))
@@ -695,8 +905,9 @@ aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot",
       
   }
   
-  if (!(type %in% c("Hitmap", "UMatrix")))
-    data <- as.data.frame(data)[variables]
+  if (!(type %in% c("Hitmap", "UMatrix"))) {
+    data <- as.data.frame(data)[variables[variables != "None"]]
+  }
   
   if (is.null(superclass)) {
     superclass <- rep(1, nrow(som$grid$pts))
@@ -719,33 +930,36 @@ aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot",
       obsNames <- as.character(1:nrow(som$data[[1]]))
     } else obsNames <- rownames(data)
   }
-  obsNames <- unname(lapply(split(obsNames, factor(obsClust, levels= 1:nrow(som$codes[[1]]))), 
-                            function(x) paste(x, collapse= ", ")))
+  if (type != "Cloud") {
+    obsNames <- unname(lapply(split(obsNames, factor(obsClust, levels= 1:nrow(som$codes[[1]]))), 
+                              function(x) paste(x, collapse= ", ")))
+  }
   
   plotParams <- getPlotParams(type, som, superclass, data, size, 
                               variables, obsNames,
                               scales, values, palsc, palvar, palrev, 
                               boxOutliers, showSC, pieEqualSize, 
-                              showAxes, transparency, showNames)
+                              showAxes, transparency, showNames, 
+                              legendPos, legendFontsize, cloudType, cloudSeed)
 
   ## Compute widget dimensions
   if (som$grid$topo == "rectangular") {
     cellSize <- size / max(som$grid$xdim, som$grid$ydim)
-    widWidth <- min(size, cellSize * som$grid$ydim)
-    widHeight <- min(size, cellSize * som$grid$xdim)
+    widWidth <- min(size, cellSize * som$grid$xdim)
+    widHeight <- min(size, cellSize * som$grid$ydim)
   } else {
-    hexRadius <- min(size / (sqrt(3) * (som$grid$ydim + 0.5)), 
-                     size / (1.5 * som$grid$xdim + 0.5))
-    widWidth <- min(size, hexRadius * (sqrt(3) * (som$grid$ydim + 0.5)))
-    widHeight <- min(size, hexRadius * (1.5 * som$grid$xdim + 0.5))
+    hexRadius <- min(size / (sqrt(3) * (som$grid$xdim + 0.5)), 
+                     size / (1.5 * som$grid$ydim + 0.5))
+    widWidth <- min(size, hexRadius * (sqrt(3) * (som$grid$xdim + 0.5)))
+    widHeight <- min(size, hexRadius * (1.5 * som$grid$ydim + 0.5))
   }
   
   ## Create the widget
   res <- htmlwidgets::createWidget(
     "aweSOMwidget", plotParams, elementId = elementId, 
-    width = widWidth, height = widHeight, package = "aweSOM")
+    width = widWidth, height = "auto", package = "aweSOM")
 
-  ## Add elements for legend and messages
+  ## Add elements for messages
   if(is.null(res$elementId)) {
     res$elementId <- paste0(
       'aweSOMwidget-', paste(format(as.hexmode(sample(256, 10, replace = TRUE) - 1), 
@@ -754,10 +968,7 @@ aweSOMplot <- function(som, type= c("Hitmap", "UMatrix", "Circular", "Barplot",
   res <- htmlwidgets::prependContent(res, htmltools::tag("h4", list(id= paste0(res$elementId, "-info"))))
   res <- htmlwidgets::prependContent(res, htmltools::tag("h4", list(id= paste0(res$elementId, "-message"))))
   res <- htmlwidgets::appendContent(res, htmltools::tag("p", list(id= paste0(res$elementId, "-names"))))
-  res <- htmlwidgets::appendContent(res, htmltools::tag(
-    "svg", list(id= paste0(res$elementId, "-legend"), width = "100%", 
-                height= ifelse(type %in% c("Circular", "Barplot", "Boxplot", 
-                                           "Pie", "CatBarplot"), "100%", "0"))))
+  res <- htmlwidgets::appendContent(res, htmltools::tag("svg", list(id= paste0(res$elementId, "-placeHolder"), height= res$sizeInfo / 4)))
   
   res
 }
