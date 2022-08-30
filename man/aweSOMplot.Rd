@@ -197,6 +197,7 @@ variables <- c("Sepal.Length", "Sepal.Width",  "Petal.Length", "Petal.Width")
 aweSOMplot(som = ok.som, type = 'Cloud', data = iris, 
            variables = c("Species", variables), superclass = superclasses)
 
+\dontrun{
 ## Population map ('Hitmap')
 aweSOMplot(som = ok.som, type = 'Hitmap', superclass = superclasses)
 
@@ -215,4 +216,5 @@ aweSOMplot(som = ok.som, type = 'Pie', data = iris,
 ## Barplot (categorical variables)
 aweSOMplot(som = ok.som, type = 'CatBarplot', data = iris,
            variables= "Species", superclass = superclasses)
+}
 }

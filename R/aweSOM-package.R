@@ -3,7 +3,7 @@
 #' @docType package
 #'
 #' @description 
-#' \if{html}{\figure{logo.png}{options: align='right' alt='logo' width='120'}}
+#' \if{html}{\figure{logo.png}{options: alt='logo'}}
 #' Interactive plots and interface for Kohonen self-organizing maps.
 #'
 #' @references Kohonen T. (2001) \emph{Self-Organizing Maps}, 3rd edition,

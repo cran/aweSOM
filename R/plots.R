@@ -810,6 +810,7 @@ aweSOMwidget_html = function(id, style, class, ...){
 #' aweSOMplot(som = ok.som, type = 'Cloud', data = iris, 
 #'            variables = c("Species", variables), superclass = superclasses)
 #' 
+#' \dontrun{
 #' ## Population map ('Hitmap')
 #' aweSOMplot(som = ok.som, type = 'Hitmap', superclass = superclasses)
 #'
@@ -828,6 +829,7 @@ aweSOMwidget_html = function(id, style, class, ...){
 #' ## Barplot (categorical variables)
 #' aweSOMplot(som = ok.som, type = 'CatBarplot', data = iris,
 #'            variables= "Species", superclass = superclasses)
+#'}
 
 aweSOMplot <- function(som, type= c("Hitmap", "Cloud", "UMatrix", "Circular", 
                                     "Barplot", "Boxplot", "Radar", "Line", 
@@ -1019,9 +1021,11 @@ aweSOMplot <- function(som, type= c("Hitmap", "Cloud", "UMatrix", "Circular",
 #'                        dist.fcts = 'sumofsquares')
 #' ## Reorder variables
 #' ordered.vars <- aweSOMreorder(ok.som)
+#' \dontrun{
 #' ## Plot with reordered variables
 #' aweSOMplot(som = ok.som, type = 'Circular', data = iris,
 #'            variables= ordered.vars)
+#'}
 aweSOMreorder <- function(som, data = NULL, variables = NULL, 
                           scales = c("contrast", "range", "same"), 
                           values = c("mean", "median", "prototypes")) {

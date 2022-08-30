@@ -19,7 +19,7 @@ import.csv.txt <- function(dataFile, header, sep, quote, dec, encoding){
                                 quote = quote, dec = dec, 
                                 stringsAsFactors = TRUE, encoding = encoding, 
                                 data.table = FALSE, check.names = TRUE))
-  if(class(data) == "try-error"){ return(NULL)}
+  if(inherits(data, "try-error")){ return(NULL)}
   return(list(data, reprocode))
 }
 
@@ -40,7 +40,7 @@ import.ods <- function(dataFile, sheet, col_names, ods_na, skip, range) {
   data <- try(readODS::read_ods(path = dataFile$datapath, sheet = sheet, 
                                 col_names = col_names, na = ods_na, skip = skip,
                                 range = range))
-  if(class(data) == "try-error"){ return(NULL)}
+  if(inherits(data, "try-error")){ return(NULL)}
   return(list(data, reprocode))
 }
 
@@ -79,7 +79,7 @@ import.excel <- function(dataFile, column_names, trim_spaces,
                                             sheet= the.sheet,
                                             trim_ws = trim_spaces,
                                             skip = rows_to_skip)))
-  if(class(data) == "try-error") return(NULL)
+  if(inherits(data, "try-error")) return(NULL)
   return(list(data, reprocode))
 }
 
@@ -109,7 +109,7 @@ import.spss <- function(dataFile, skip, user_na){
       x <- haven::as_factor(x, levels= "labels")
     x
   }))
-  if(class(data) == "try-error") return(NULL)
+  if(inherits(data, "try-error")) return(NULL)
   return(list(data, reprocode))
 }
 
@@ -127,7 +127,7 @@ import.sas.data <- function(dataFile, catalog_file, skip){
   data <- try(data.frame(haven::read_sas(data_file = dataFile$datapath, 
                                          catalog_file = catalog_file$datapath, 
                                          skip = skip)))
-  if(class(data) == "try-error") return(NULL)
+  if(inherits(data, "try-error")) return(NULL)
   
   return(list(data, reprocode))
 }
@@ -140,6 +140,6 @@ import.stata <- function(dataFile, convert_factors){
                       '))\n')
 
   data <- try(data.frame(foreign::read.dta(file = dataFile$datapath)))
-  if(class(data) == "try-error") return(NULL)
+  if(inherits(data, "try-error")) return(NULL)
   return(list(data, reprocode))
 }

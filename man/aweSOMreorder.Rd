@@ -62,7 +62,9 @@ ok.som <- kohonen::som(dat, grid = kohonen::somgrid(4, 4, 'hexagonal'),
                        dist.fcts = 'sumofsquares')
 ## Reorder variables
 ordered.vars <- aweSOMreorder(ok.som)
+\dontrun{
 ## Plot with reordered variables
 aweSOMplot(som = ok.som, type = 'Circular', data = iris,
            variables= ordered.vars)
+}
 }

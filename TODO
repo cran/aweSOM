@@ -1,0 +1,43 @@
+Done:
+* corrected: shinythemes to imported packages
+* fixed bug in somInit: prcomp rather than princomp
+* UI Train: fixed UI crash when som dim 1x1
+* UI Export: fixed bug with cat variables
+* New logo, new UI theme
+* Train msg: separate section for train options, add train nrows.
+* UI train: allowed <1 weights
+* UI train: implemented buttons to adjust weights
+* upgraded legend, present in svg, interactive
+* new Cloud plot
+* fixed bug: SOM dimensions were flipped wrt kohonen, and hex placement not right when odd number of rows
+* Fixed bug in UI: compensate weights for numeric when were categorical before
+* import error message (always txt/csv)
+* speed up proto dist cloud
+* Fixed bug Smooth distance: inverted x and y, relative scales not good
+* New smooth distance
+* plot-warning for dendro pam
+* Fixed info message with var name in color / UMatrix plots
+* UI train: factor levels to server-side selectize
+* help for weights
+* help for cloud options
+* UI train: var type selection (num to factor, factor to num)
+* UI import: added ods import, and options for spss, sas and stata 
+
+For next version: 
+
+Suggestions
+* Plots for qual with num variables: show NA as a full class, with separate colors?
+* Better treatment of too many sc for palette? (warning message in UI?)
+
+Wishlist
+* Fr vignette
+* vignette for categorical / mixed data
+* plot: polygon distance
+* plot: frontiers between cells colored for distance
+* plot: lookup obs by name
+* file import: URL, toy examples
+* support for additional observations
+* UI train: history of seeds?
+* UI plot: multiple var through double select (one selection, one order)
+* aweSOM(data = ...)
+* UI internationalization

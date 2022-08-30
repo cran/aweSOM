@@ -5,7 +5,7 @@
 \alias{aweSOM-package}
 \title{Interactive Self-Organizing Maps}
 \description{
-\if{html}{\figure{logo.png}{options: align='right' alt='logo' width='120'}}
+\if{html}{\figure{logo.png}{options: alt='logo'}}
 Interactive plots and interface for Kohonen self-organizing maps.
 }
 \references{

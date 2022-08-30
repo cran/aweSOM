@@ -1218,7 +1218,7 @@ shinyServer(function(input, output, session) {
   #############################################################################
   
   reprocode <- reactive({
-    paste0("library(aweSOM) # (version 1.2) \n\n",
+    paste0("library(aweSOM) # (version 1.3) \n\n",
            values$codetxt$dataread, 
            values$codetxt$traindat, 
            values$codetxt$train,

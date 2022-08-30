@@ -8,8 +8,8 @@ aweSOMscreeplot(
   som,
   nclass = 2,
   method = c("hierarchical", "pam"),
-  hmethod = c("complete", "ward.D2", "ward.D", "single", "average", "mcquitty",
-    "median", "centroid")
+  hmethod = c("complete", "ward.D2", "ward.D", "single", "average", "mcquitty", "median",
+    "centroid")
 )
 }
 \arguments{
